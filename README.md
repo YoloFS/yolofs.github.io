@@ -17,7 +17,7 @@ information and control to filesystems for agent safety and autonomy.*
 | `design.html`    | Design and implementation of YoloFS                        |
 | `bench.html`     | Agent-benchmark methodology and results                    |
 | `perf.html`      | Performance evaluation                                     |
-| `nav.js`         | Single-source top-nav, auto-active by URL                  |
+| `site.js`        | Site-wide bootstrap: top-nav (auto-active by URL) + analytics |
 | `styles.css`     | Shared theme                                               |
 | `favicon.svg`    | Browser tab icon                                           |
 | `og.png`         | Social-share card (1200×630)                               |

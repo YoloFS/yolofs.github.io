@@ -1,7 +1,20 @@
-// nav.js — single source of truth for the top nav across all YoloFS pages.
-// Auto-detects the active link from window.location and prepends the right
-// number of `../` so links work both on yolofs.github.io and locally.
+// site.js — site-wide shared bootstrap: analytics + top nav.
+// Loaded once per page via <script src="site.js" defer>; runs after DOM
+// parse but before DOMContentLoaded.
 (function () {
+  // ── Google Analytics (gtag.js) ─────────────────────────────────────────
+  const GA_ID = 'G-SFYLJ3XS27';
+  const gaTag = document.createElement('script');
+  gaTag.async = true;
+  gaTag.src   = 'https://www.googletagmanager.com/gtag/js?id=' + GA_ID;
+  document.head.appendChild(gaTag);
+
+  window.dataLayer = window.dataLayer || [];
+  function gtag() { window.dataLayer.push(arguments); }
+  gtag('js', new Date());
+  gtag('config', GA_ID);
+
+  // ── Top nav ────────────────────────────────────────────────────────────
   const ITEMS = [
     { key: 'home',   href: 'index.html',  label: 'Home' },
     { key: 'study',  href: 'study.html',  label: 'Study' },
@@ -26,9 +39,9 @@
 
   const ACTIVE = activeKey();
   const isExternal = h => /^https?:/.test(h);
-  const resolve   = h => isExternal(h) ? h : PREFIX + h;
+  const resolve    = h => isExternal(h) ? h : PREFIX + h;
 
-  function build() {
+  function buildNav() {
     const wrap = document.querySelector('.topnav .wrap');
     if (!wrap) return;
     const brand =
@@ -42,8 +55,8 @@
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', build);
+    document.addEventListener('DOMContentLoaded', buildNav);
   } else {
-    build();
+    buildNav();
   }
 })();
