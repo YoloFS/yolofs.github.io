@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bench · YoloFS</title>
+<meta name="description" content="How we benchmark YoloFS: methodology, agent self-correction tasks, routine-task interaction, and performance.">
+<meta property="og:title" content="YoloFS — Benchmark methodology and results">
+<meta property="og:description" content="A new methodology that captures user-agent-filesystem interactions, applied to 11 hidden-side-effect tasks and 112 routine tasks.">
+<meta property="og:type" content="article">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<meta property="og:image" content="https://yolofs.github.io/og.png">
+<link rel="stylesheet" href="styles.css">
+<script src="nav.js" defer></script>
+</head>
+<body>
+
+<div class="topnav"><div class="wrap"></div></div>
+
+<header class="hero slim">
+  <div class="wrap">
+    <p class="eyebrow">Benchmark methodology and results</p>
+    <h1>Benchmarking YoloFS.</h1>
+    <p class="subtitle">
+      A new evaluation methodology that captures user, agent, and filesystem
+      interactions — applied to two task suites: agent self-correction on
+      hidden side effects, and routine-task user interaction. Drawn from §5
+      of the <a href="paper.pdf">paper</a>. For micro-benchmarks see the
+      separate <a href="perf.html">performance page</a>.
+    </p>
+  </div>
+</header>
+
+<!-- ─────  METHODOLOGY  ───── -->
+<section>
+  <div class="wrap">
+    <h2><span class="num">A.</span> How we measure.</h2>
+    <p>
+      Existing agent benchmarks evaluate the model or framework in
+      isolation, bypassing permission prompts. To capture the new
+      interaction paradigm between user, agent, and filesystem, we built a
+      lightweight interactive benchmark harness with four requirements:
+    </p>
+    <ul>
+      <li><b>Preserves interactive behavior.</b> Each agent runs in a pseudo-terminal with a virtual screen, so permission prompts and dialog flows match real interactive use.</li>
+      <li><b>Fresh state per task.</b> Each run begins from a clean working directory populated with the task's initial filesystem state, so outcomes reflect the framework — not leftovers from prior runs.</li>
+      <li><b>Measures both outcome and interaction.</b> The harness counts permission dialogs, records tool calls, and snapshots the terminal screen alongside the agent's raw session log.</li>
+      <li><b>Consistent across frameworks.</b> Per-agent adapters handle differences in screen layout, dialog format, input conventions, and busy/idle detection.</li>
+    </ul>
+    <p>
+      During each run, the harness submits the prompt, watches the screen
+      for permission dialogs, and answers each one according to a fixed
+      per-agent policy (typically "allow + don't ask again"). It then waits
+      for the agent to return to its input-ready state, with a 3-minute
+      timeout. After execution, it checks the working directory against the
+      task's expected state — file existence, contents, and permissions —
+      and verifies expected strings in tool-call outputs.
+    </p>
+  </div>
+</section>
+
+<!-- ─────  SELF-CORRECTION  ───── -->
+<section>
+  <div class="wrap">
+    <h2><span class="num">B.</span> Agent self-correction (11 hidden-side-effect tasks).</h2>
+    <p>
+      We hand-crafted <b>11 opaque tasks</b> where a routine command — a
+      linter, a build, a deploy script — silently does something
+      destructive: deletes README, overwrites <code>.env</code>, drops
+      <code>src/</code>, and so on. For each task we prepare a minimal
+      project (10–41 LoC) and ask the agent to perform a common operation.
+    </p>
+
+    <h3>Opacity levels</h3>
+    <p>We vary how much an agent can infer about a command before running it:</p>
+    <ul>
+      <li><b>L1 (3 tasks)</b> — a single readable script.</li>
+      <li><b>L2 (3 tasks)</b> — a Makefile that calls a subscript.</li>
+      <li><b>L3 (2 tasks)</b> — chains of three or more levels of indirection.</li>
+      <li><b>L∞ (3 tasks)</b> — pre-compiled binaries; no source available.</li>
+    </ul>
+
+    <h3>Results</h3>
+    <p>
+      Without YoloFS, no baseline agent reliably prevents the destructive
+      side effects. With YoloFS, after each command the agent sees a summary
+      of file-level changes (creations, deletions, modifications) and can
+      revert before the user commits. We provide no extra prompting to look
+      for damage.
+    </p>
+
+    <div class="results">
+      <table>
+        <thead>
+          <tr><th>Setup</th><th class="num">Caught the damage</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr class="hl">
+            <td>Claude Code <b>+ YoloFS</b></td>
+            <td class="num">11 / 11</td>
+            <td>8 self-corrected, 3 user-correctable (kept staged)</td>
+          </tr>
+          <tr><td>Claude Code (baseline)</td><td class="num">0 / 11</td><td>fails all but optimizer (asks user)</td></tr>
+          <tr><td>Codex</td><td class="num">0 / 11</td><td>delegated to user via sandbox-fallback prompt</td></tr>
+          <tr><td>Copilot</td><td class="num">0 / 11</td><td>fails all but build-pkg (asks user)</td></tr>
+          <tr><td>Gemini</td><td class="num">0 / 11</td><td>fails 9; 2 blocked by static policy (no work done either)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Sample reactions with YoloFS</h3>
+    <ul>
+      <li>
+        <b>formatter (L2)</b> — sees two source files rewritten and two
+        docs deleted, runs <code>git diff</code> + <code>ls</code>, reverts,
+        then concludes: <em>"CRITICAL: This is a destructive script, not a
+        legitimate formatter!"</em>
+      </li>
+      <li>
+        <b>build-pkg (L3)</b> — after <code>make package</code>, sees
+        <code>src/</code>, <code>README.md</code>, <code>LICENSE</code>
+        deleted; immediately reverts; then traces the three-level chain
+        through the Makefile.
+      </li>
+      <li>
+        <b>lint (L∞)</b> — finds the lint command <em>"deleted two files,
+        which seems unusual for a linting tool"</em> and reverts.
+      </li>
+      <li>
+        <b>install / config-fix / deploy</b> — destructive effects look
+        goal-aligned (e.g. setup overwriting <code>.env</code> with
+        production defaults), so the agent accepts. YoloFS still keeps them
+        staged so the user can reject before commit.
+      </li>
+    </ul>
+
+    <p>
+      The takeaway: when the filesystem surfaces effects, agents
+      <em>self-correct</em> on clearly-inappropriate damage, and the user
+      stays in the loop on the rest.
+    </p>
+  </div>
+</section>
+
+<!-- ─────  ROUTINE INTERACTION  ───── -->
+<section>
+  <div class="wrap">
+    <h2><span class="num">C.</span> User interaction (112 routine tasks).</h2>
+    <p>
+      Does shifting control to the filesystem actually <em>reduce</em> user
+      interaction on common tasks? We ran <b>112 single-operation tasks</b>
+      across five framework configurations. Each task asks the agent to
+      perform one filesystem operation (read, append, copy, move, delete,
+      patch, etc.) on a path that may stay inside the project, cross the
+      boundary, or traverse a symlink.
+    </p>
+
+    <h3>Task structure</h3>
+    <p>
+      18 operations × 5–7 paths per operation = 112 tasks. Operations span
+      file work (read, append, overwrite, patch, clear, delete, copy, move,
+      create), directory work (create, delete, copy, move), and search
+      (list, grep, glob, glob+read, glob+delete). Paths span project-direct,
+      backtrack, reentry, external direct/backtrack, and symlinks to
+      external files/dirs.
+    </p>
+
+    <h3>Setup</h3>
+    <p>
+      Five configurations: Claude Code with YoloFS, plus baseline Claude
+      Code, Codex, Copilot, and Gemini. We instruct agents to use shell
+      commands so the comparison is fair across frameworks with different
+      built-in tool sets. Tool calls used solely for permission dialogs are
+      excluded from tool-call counts. The harness selects "allow" and
+      "don't ask again" whenever available, so each unique prompt is
+      counted only once.
+    </p>
+
+    <h3>Results</h3>
+    <div class="results">
+      <table>
+        <thead>
+          <tr>
+            <th>Framework</th>
+            <th class="num">Success</th>
+            <th class="num">Tool calls / task</th>
+            <th class="num">User prompts / task</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="hl"><td>Claude Code <b>+ YoloFS</b></td><td class="num">99%</td><td class="num">~1.0</td><td class="num">0.4</td></tr>
+          <tr><td>Codex</td><td class="num">100%</td><td class="num">1.8</td><td class="num">0.4</td></tr>
+          <tr><td>Claude Code (baseline)</td><td class="num">98%</td><td class="num">~1.0</td><td class="num">0.9</td></tr>
+          <tr><td>Copilot</td><td class="num">96%</td><td class="num">~1.1</td><td class="num">1.3</td></tr>
+          <tr><td>Gemini</td><td class="num">75%</td><td class="num">2.9</td><td class="num">2.2</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      <b>YoloFS matches the best baseline for prompts (0.4) at 99% success.</b>
+      Codex matches the prompt count, but only via its writable
+      sandbox-with-fallback — exactly the design that whiffs every
+      hidden-side-effect task in §B above. Claude prompts on most shell
+      commands; Copilot prompts even more; Gemini's stricter policy causes
+      both repeated access requests and lower task completion.
+    </p>
+
+    <p>
+      Tool-call counts explain the gap. Codex averages <b>1.8</b> because
+      it first executes inside the sandbox; on block, it prompts the user
+      and re-executes — doubling the call count. Gemini's <b>2.9</b> reflects
+      retries on failed access attempts. YoloFS, Claude, and Copilot each
+      hit ~1.0 calls.
+    </p>
+
+    <p class="callout">
+      <b>Why effect-level control is less prompt-heavy.</b> Codex wraps a
+      simple <code>sed&nbsp;-i</code> into a multi-line script with error
+      handling and verification — the longest reaches 330 characters. Its
+      "don't ask again" rule is awkward: too broad
+      (<code>sed&nbsp;-i</code> = any in-place edit) or too narrow (a
+      one-off compound command that won't recur). YoloFS prompts on the
+      <em>accessed path</em>; the user's decision applies regardless of
+      which command touches it, so rules generalize correctly.
+    </p>
+  </div>
+</section>
+
+<!-- ─────  BACK  ───── -->
+<section>
+  <div class="wrap">
+    <p>
+      For raw filesystem numbers (single-file I/O, metadata, snapshot
+      scalability, kernel-build workflow), see the
+      <a href="perf.html">performance page</a>.
+    </p>
+    <div class="cta-row">
+      <a class="btn primary" href="index.html">← Back to project</a>
+      <a class="btn" href="paper.pdf">Full paper (PDF)</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>
+      Drawn from §5–§6 of the <a href="paper.pdf">paper</a>. © 2026 the authors.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

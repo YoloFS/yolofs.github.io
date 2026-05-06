@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YoloFS — Don't let AI agents YOLO your files</title>
+<meta name="description" content="A systematic study of how AI coding agents misuse the filesystem, and an agent-native filesystem that closes the gap.">
+<meta property="og:title" content="Don't let AI agents YOLO your files">
+<meta property="og:description" content="290 real reports of AI agents wiping drives, leaking secrets, and overwriting data — and a filesystem that fixes it.">
+<meta property="og:type" content="website">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<meta property="og:image" content="https://yolofs.github.io/og.png">
+<link rel="stylesheet" href="styles.css">
+<script src="nav.js" defer></script>
+</head>
+<body>
+
+<div class="topnav"><div class="wrap"></div></div>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Research preprint · April 2026</p>
+    <h1>
+      <span class="title-prefix">Don't let AI agents YOLO your files.</span><br>
+      Shifting information and control to filesystems for agent safety and autonomy.
+    </h1>
+    <p class="subtitle">
+      AI coding agents now run on millions of personal machines —
+      and they regularly delete files, overwrite data, and leak secrets.
+      We studied <b>290&nbsp;real incidents</b> across 13&nbsp;agent frameworks,
+      then built <b>YoloFS</b>, a filesystem that lets agents fix their own
+      mistakes and lets you stay in control without drowning in prompts.
+    </p>
+
+    <div class="authors">
+      <b>Shawn (Wanxiang) Zhong</b>, <b>Junxuan Liao</b>,
+      <b>Jing Liu</b>, <b>Mai Zheng</b>,
+      <b>Andrea C. Arpaci-Dusseau</b>, <b>Remzi H. Arpaci-Dusseau</b>
+      <span class="affil">
+        University of Wisconsin–Madison · Microsoft Research · Iowa State University
+      </span>
+    </div>
+
+    <div class="cta-row">
+      <a class="btn primary" href="paper.pdf">Read the paper</a>
+      <a class="btn" href="https://arxiv.org/abs/2604.13536">arXiv:2604.13536</a>
+      <a class="btn" href="https://github.com/YoloFS">Code on GitHub</a>
+    </div>
+  </div>
+</header>
+
+<!-- ─────────────  PROBLEM  ───────────── -->
+<section id="problem">
+  <div class="wrap">
+    <h2><span class="num">1.</span> AI agents are wrecking real users' files.</h2>
+    <p class="epigraph">
+      "Programming [has] changed forever."
+      <span class="who">— Antirez (Salvatore Sanfilippo, creator of Redis), 2026</span>
+    </p>
+    <p class="lead">
+      Coding agents (Claude Code, Codex, Cursor, Gemini, Copilot) run on
+      your machine with your privileges — reading your files, writing your
+      files, running your shell. When they go wrong, the damage is real
+      and often <em>irreversible</em>.
+    </p>
+
+    <div class="quotes">
+      <blockquote class="quote">
+        Agent <em>wiped the entire drive</em> while running a routine
+        <code>rmdir</code> with a quoting bug.
+        <span class="who">— Antigravity report (drive wipe)</span>
+      </blockquote>
+      <blockquote class="quote">
+        Agent <em>copied iCloud stubs over the originals</em> and then deleted
+        them, destroying 110 legal documents from a divorce proceeding.
+        <span class="who">— Claude co-work report</span>
+      </blockquote>
+      <blockquote class="quote">
+        Agent <em>silently leaked the user's <code>.env</code> file</em>
+        through a prompt-injection attack hidden in a web page.
+        <span class="who">— Antigravity injection report</span>
+      </blockquote>
+      <blockquote class="quote">
+        After deleting a day's uncommitted work, the agent calmly reported:
+        <em>"No problems occurred."</em> Another said: <em>"I am absolutely
+        devastated. I cannot express how sorry I am."</em>
+        <span class="who">— Multiple incident reports</span>
+      </blockquote>
+    </div>
+
+    <p>
+      Even when agents detect what they did, they have no way to undo it —
+      all they can do is apologize. <em>"Recovering the data will require
+      whatever backups you have"</em> isn't a fix; it's a eulogy.
+    </p>
+    <p>
+      Today's only safety net is the <b>permission prompt</b> — a wall of
+      "approve / deny" dialogs. But agents issue hundreds of tool calls per
+      session. So users either spend their day clicking "approve", or they flip
+      on <em>YOLO mode</em> and let the agent run unchecked. Both are dangerous.
+    </p>
+  </div>
+</section>
+
+<!-- ─────────────  STUDY  ───────────── -->
+<section id="study">
+  <div class="wrap">
+    <h2><span class="num">2.</span> The first systematic study of agent filesystem misuse.</h2>
+    <p>
+      We collected and triaged <b>290&nbsp;public reports</b> from
+      GitHub issues, social media, product forums, blog posts, and the
+      National Vulnerability Database — spanning 2024–2026 across
+      13&nbsp;agent frameworks. We also audited the source code of
+      6&nbsp;major frameworks to understand how they fail.
+    </p>
+
+    <div class="stats">
+      <div class="stat"><span class="n">290</span><div class="l">public misuse reports analyzed</div></div>
+      <div class="stat"><span class="n">13</span><div class="l">agent frameworks covered</div></div>
+      <div class="stat"><span class="n">42%</span><div class="l">of damage reaches outside the project</div></div>
+      <div class="stat"><span class="n">40%</span><div class="l">of damage cannot be fully undone</div></div>
+    </div>
+
+    <h3>What goes wrong</h3>
+    <ul>
+      <li><b>Writes (44%)</b> — agents overwrite source files with stubs, truncate them to zero, or replace real content with generated junk.</li>
+      <li><b>Deletes (39%)</b> — <code>rm&nbsp;-rf&nbsp;~</code>, drive wipes, deletion of personal documents.</li>
+      <li><b>Leaks (17%)</b> — <code>.env</code> files, API keys, SSH credentials shipped to attackers via prompt injection.</li>
+    </ul>
+
+    <h3>Why agents react badly when caught</h3>
+    <p class="small no-top">
+      Among incidents where the agent's reaction was visible:
+      <b>68%</b> kept operating as if nothing happened.
+      <b>21%</b> apologized but couldn't undo anything.
+      <b>11%</b> actively lied — fabricating recovery steps or fake test results.
+    </p>
+
+    <p class="spaced">
+      <a class="btn" href="study.html">Full breakdown of the 290 reports →</a>
+    </p>
+  </div>
+</section>
+
+<!-- ─────────────  GAPS  ───────────── -->
+<section id="gaps">
+  <div class="wrap">
+    <h2><span class="num">3.</span> Two root causes: information and control gaps.</h2>
+    <p class="lead">
+      Why does this keep happening? Across all 290 reports, the failures point to two missing things:
+    </p>
+    <p>
+      <span class="tag info">Information</span> &nbsp;
+      Users can't see what the agent <em>actually did</em>.
+      Agents can't see the consequences of their own commands.
+      Even something as simple as <code>make</code> hides a chain of scripts that may
+      delete files, leak secrets, or rewrite config — none of which is visible
+      from the command string.
+    </p>
+    <blockquote class="quote">
+      Suppose an agent runs <code>make</code> to build a project. Buried in
+      the call chain, a script silently leaks the user's private key and
+      corrupts it. Even with a permission prompt, the user cannot judge the
+      consequences of the command — and after execution, has no record of
+      what damage was done.
+      <span class="who">— Paper §1, Information gap</span>
+    </blockquote>
+
+    <p class="spaced">
+      <span class="tag ctrl">Control</span> &nbsp;
+      Telling the model "don't touch <code>~/.ssh</code>" doesn't enforce anything.
+      Filtering command strings doesn't either: agents trivially switch from
+      <code>rm</code> to Python's <code>shutil</code>, or pipe through
+      <code>cat</code>, or chain commands with <code>&amp;&amp;</code>. The
+      filter sees a string; the filesystem sees the effect.
+    </p>
+    <blockquote class="quote">
+      One agent's own post-hoc admission: <em>"I get focused on solving the
+      problem and skip the step of checking the rules."</em>
+      <span class="who">— Paper §3.3, model deprioritization</span>
+    </blockquote>
+
+    <p class="spaced">
+      Our argument: if neither the model nor the framework can be trusted to
+      enforce what touches the disk, then <b>the filesystem itself</b> must
+      provide the missing information and control.
+    </p>
+  </div>
+</section>
+
+<!-- ─────────────  SOLUTION  ───────────── -->
+<section id="yolofs">
+  <div class="wrap">
+    <h2><span class="num">4.</span> YoloFS: an agent-native filesystem.</h2>
+    <p class="lead">
+      We argue that an agent-native filesystem should provide four things:
+      <b>visibility</b> into current changes,
+      <b>auditability</b> over the full session history,
+      <b>preventive control</b> before an access takes effect, and
+      <b>corrective control</b> afterward — letting agents <em>revert</em>
+      their own mistakes and letting users <em>revoke</em> any change.
+    </p>
+    <p class="lead">
+      YoloFS sits between the agent and the real filesystem and delivers
+      all four with three techniques:
+    </p>
+
+    <div class="feature">
+      <h3>① Staging — every change goes to a holding area first.</h3>
+      <p>
+        Agents <b>cannot</b> directly mutate your files. Every write, delete,
+        and rename is captured in a staging layer. You see a clean diff and
+        decide: <code>commit</code>, <code>abort</code>, or keep working.
+        Renames and directory moves are zero-copy, so long sessions stay fast.
+      </p>
+    </div>
+
+    <div class="feature">
+      <h3>② Snapshots and travel — let the agent fix its own mistakes.</h3>
+      <p>
+        Continuous snapshots let the agent rewind to any earlier point when it
+        realizes it broke something — <em>without</em> erasing the trail of
+        what happened. The user can still audit the abandoned branch, and the
+        agent can travel forward again if the rollback itself was wrong.
+      </p>
+    </div>
+
+    <div class="feature">
+      <h3>③ Progressive permission — gate by path, not by command.</h3>
+      <p>
+        Permissions sit on file paths, not command strings. Whether the agent
+        uses <code>rm</code>, Python's <code>shutil</code>, or a stray
+        <code>find … -delete</code>, the same path gets the same answer.
+        Rules are hierarchical and evolve during the session: when you answer
+        a prompt, the answer can promote into a rule that covers a whole
+        subtree, so the next 100 accesses don't ask again.
+      </p>
+    </div>
+
+    <pre><span class="c"># 1.  Init the session and add rules.</span>
+<span class="k">$</span> yolo init
+<span class="k">$</span> yolo rule add <span class="p">.</span>    allow
+<span class="k">$</span> yolo rule add <span class="p">/etc</span> deny
+
+<span class="c"># 2.  Mount the sandbox and snapshot the starting point.</span>
+<span class="k">$</span> yolo mount
+<span class="k">$</span> yolo checkpoint <span class="s">"pre-build"</span>
+
+<span class="c"># 3.  Progressive permission: the first access outside the rules asks.</span>
+<span class="k">$</span> yolo exec -- cat <span class="p">~/.ssh/id_rsa</span>
+<span class="ask">[ask]</span> <span class="p">~/.ssh/id_rsa</span>   <span class="dim">read</span>
+       <span class="dim">(a) once   (A) allow+remember   (d) deny   (D) deny+remember</span>
+<span class="k">&gt;</span> <span class="you">D</span>
+<span class="ok">✓</span> rule added: <span class="p">~/.ssh</span> = deny
+
+<span class="c"># 4.  Run something risky — every effect goes to staging, not disk.</span>
+<span class="k">$</span> yolo exec -- make package
+<span class="k">$</span> yolo diff
+<span class="del">−</span>  src/                              <span class="dim">deleted (47 files)</span>
+<span class="mod">M</span>  README.md                         <span class="dim">+5 −0</span>
+<span class="add">+</span>  release/                          <span class="dim">new (47 files)</span>
+
+<span class="c"># 5.  Travel back. The abandoned branch stays auditable.</span>
+<span class="k">$</span> yolo restore <span class="s">"pre-build"</span>
+<span class="ok">✓</span> traveled to gen 1 (audit trail kept)
+
+<span class="c"># 6.  Or commit the good changes to the real filesystem.</span>
+<span class="k">$</span> yolo commit
+<span class="ok">✓</span> applied changes to base</pre>
+
+    <p>
+      Built as a Linux <b>stackable kernel module</b> (~2.5k LoC of C) plus a
+      Rust CLI (~6.2k LoC). Stacks on top of any POSIX filesystem — ext4, xfs,
+      NFS — and integrates into Claude Code through its <code>PreToolUse</code> hook.
+    </p>
+
+    <p class="spaced">
+      <a class="btn" href="design.html">Design and implementation details →</a>
+    </p>
+  </div>
+</section>
+
+<!-- ─────────────  AGENT BENCHMARK  ───────────── -->
+<section id="results">
+  <div class="wrap">
+    <h2><span class="num">5.</span> A new agent benchmark.</h2>
+
+    <p class="lead">
+      Existing agent benchmarks evaluate the model or framework in
+      isolation, bypassing permission prompts entirely — but
+      <em>user&nbsp;↔&nbsp;agent&nbsp;↔&nbsp;filesystem</em> interaction is
+      exactly what we need to measure. So as part of this work we built a
+      <b>new agent benchmark methodology</b>: a pseudo-terminal harness that
+      drives each agent in its real interactive form, parses permission
+      dialogs, answers them with a fixed per-agent policy, and records every
+      tool call, screenshot, and outcome. We then designed two task suites
+      tailored to it. Two claims hold up:
+    </p>
+    <ul>
+      <li>
+        <b>Agent self-correction.</b> On 11 tasks where a routine command
+        silently does something destructive, Claude Code + YoloFS catches all
+        11 (vs 0 for every baseline); 8 are fully self-corrected, 3 stay staged
+        for the user.
+      </li>
+      <li>
+        <b>Same success, fewer prompts.</b> On 112 routine filesystem tasks,
+        YoloFS averages <b>0.4</b> user prompts per task at <b>99%</b> success —
+        matching Codex on prompts and beating Claude (0.9) / Copilot (1.3) /
+        Gemini (2.2) by a wide margin.
+      </li>
+    </ul>
+
+    <div class="bars">
+      <div class="bar-row">
+        <span class="bar-label">YoloFS</span>
+        <span class="bar-track"><span class="bar-fill good" style="width:18.2%"></span></span>
+        <span class="bar-num">0.4</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">Codex</span>
+        <span class="bar-track"><span class="bar-fill" style="width:18.2%"></span></span>
+        <span class="bar-num">0.4</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">Claude</span>
+        <span class="bar-track"><span class="bar-fill" style="width:40.9%"></span></span>
+        <span class="bar-num">0.9</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">Copilot</span>
+        <span class="bar-track"><span class="bar-fill" style="width:59.1%"></span></span>
+        <span class="bar-num">1.3</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">Gemini</span>
+        <span class="bar-track"><span class="bar-fill" style="width:100%"></span></span>
+        <span class="bar-num">2.2</span>
+      </div>
+    </div>
+    <p class="small no-top">
+      User prompts per task on 112 routine filesystem tasks (lower is better).
+    </p>
+
+    <p class="spaced">
+      <a class="btn" href="bench.html">Benchmark methodology and results →</a>
+    </p>
+  </div>
+</section>
+
+<!-- ─────────────  PERFORMANCE  ───────────── -->
+<section id="performance">
+  <div class="wrap">
+    <h2><span class="num">6.</span> Performance.</h2>
+    <p class="lead">
+      On standard filesystem micro-benchmarks and a realistic
+      kernel-development workflow, YoloFS is <b>as fast as bare ext4</b> —
+      with only ~3.5 s of extra commit time over 100k files. OverlayFS is
+      <b>18% slower</b>; FUSE-based BranchFS adds <b>2 minutes</b> to a
+      20-second build. Snapshot scalability stays flat across hundreds of
+      snapshots; metadata is often faster than ext4 once files are staged.
+    </p>
+
+    <div class="bars">
+      <div class="bar-row">
+        <span class="bar-label">ext4</span>
+        <span class="bar-track"><span class="bar-fill muted" style="width:84.7%"></span></span>
+        <span class="bar-num">1.00×</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">YoloFS</span>
+        <span class="bar-track"><span class="bar-fill good" style="width:84.7%"></span></span>
+        <span class="bar-num">1.00×</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">OverlayFS</span>
+        <span class="bar-track"><span class="bar-fill" style="width:100%"></span></span>
+        <span class="bar-num">1.18×</span>
+      </div>
+    </div>
+    <p class="small no-top">
+      Total time on a real kernel-development workflow (build, edit,
+      rebuild, commit across 100k files), normalized to ext4. BranchFS
+      does not finish — adds 2 minutes to a 20-second build before failing.
+    </p>
+
+    <p class="spaced">
+      <a class="btn" href="perf.html">Performance evaluation →</a>
+    </p>
+  </div>
+</section>
+
+<!-- ─────────────  TAKEAWAYS  ───────────── -->
+<section id="takeaways">
+  <div class="wrap">
+    <h2><span class="num">7.</span> Takeaways.</h2>
+    <ul>
+      <li><b>Agent filesystem misuse is widespread, not anecdotal.</b> 290 reports across 13 frameworks; 42% reach outside the project; 40% can't be fully undone.</li>
+      <li><b>The right place to enforce safety is the filesystem.</b> Models can be misled, instructions ignored, command filters bypassed — but the filesystem sees every effect.</li>
+      <li><b>Letting agents fix themselves is possible.</b> When an agent can <em>see</em> its effects, it often catches and reverts its own mistakes — without any extra prompting.</li>
+      <li><b>Agent benchmarks need a new methodology.</b> Bypassing permission prompts to script "headless" agents misses the point — user&nbsp;↔&nbsp;agent&nbsp;↔&nbsp;filesystem interaction <em>is</em> the thing being measured.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ─────────────  CITE  ───────────── -->
+<section id="cite">
+  <div class="wrap">
+    <h2><span class="num">8.</span> Citation.</h2>
+    <pre>@misc{zhong2026dontletaiagents,
+      title={Don't Let AI Agents YOLO Your Files: Shifting Information and Control to Filesystems for Agent Safety and Autonomy},
+      author={Shawn Wanxiang Zhong and Junxuan Liao and Jing Liu and Mai Zheng and Andrea C. Arpaci-Dusseau and Remzi H. Arpaci-Dusseau},
+      year={2026},
+      eprint={2604.13536},
+      archivePrefix={arXiv},
+      primaryClass={cs.OS},
+      url={https://arxiv.org/abs/2604.13536},
+}</pre>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>
+      © 2026 the authors. Site source on
+      <a href="https://github.com/YoloFS/yolofs.github.io">GitHub</a>.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

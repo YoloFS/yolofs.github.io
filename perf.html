@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Performance · YoloFS</title>
+<meta name="description" content="YoloFS performance: single-file I/O, metadata operations, snapshot scalability, and a realistic kernel-development workload.">
+<meta property="og:title" content="YoloFS — Performance">
+<meta property="og:description" content="As fast as ext4. Faster metadata than OverlayFS. Snapshot-scalable across hundreds of snapshots.">
+<meta property="og:type" content="article">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<meta property="og:image" content="https://yolofs.github.io/og.png">
+<link rel="stylesheet" href="styles.css">
+<script src="nav.js" defer></script>
+</head>
+<body>
+
+<div class="topnav"><div class="wrap"></div></div>
+
+<header class="hero slim">
+  <div class="wrap">
+    <p class="eyebrow">Performance evaluation</p>
+    <h1>Performance.</h1>
+    <p class="subtitle">
+      How YoloFS compares to bare ext4, OverlayFS, and BranchFS on
+      single-file I/O, metadata, snapshots, and a realistic Linux kernel
+      development workload. Curated findings here; raw plots on the
+      auto-generated <a href="https://yolofs.github.io/bench-results/report/">dashboard</a>. Drawn from §6 of the
+      <a href="paper.pdf">paper</a>.
+    </p>
+  </div>
+</header>
+
+<!-- ─────  SETUP  ───── -->
+<section>
+  <div class="wrap">
+    <h2><span class="num">A.</span> Setup.</h2>
+    <p>
+      We compare YoloFS against:
+    </p>
+    <ul>
+      <li><b>Bare ext4</b> — baseline, no staging or permission layer.</li>
+      <li>
+        <b>OverlayFS</b> — the production Linux union FS. We emulate
+        YoloFS-style staging by mounting OverlayFS with multiple lower
+        directories and adding post-processing.
+      </li>
+      <li>
+        <b>BranchFS</b> — a recent FUSE-based research filesystem for
+        agentic exploration that supports staging-commit and snapshots
+        through nested stacked workspaces.
+      </li>
+    </ul>
+    <p>
+      Neither emulator has feature parity with YoloFS on the permission
+      side — they are included only to compare staging and snapshot costs.
+    </p>
+
+    <h3>Hardware</h3>
+    <ul>
+      <li>AMD EPYC 7302P 16-Core @ 3 GHz · 125 GB DDR4-3200</li>
+      <li>Ubuntu 24.04, Linux 6.8 default kernel</li>
+      <li>ext4 base FS on a 480 GB SATA SSD (default options)</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ─────  FINDINGS  ───── -->
+<section>
+  <div class="wrap">
+    <h2><span class="num">B.</span> Findings.</h2>
+
+    <div class="feature">
+      <h3>① Single-file I/O — YoloFS matches bare ext4.</h3>
+      <p>
+        Single-threaded reads and writes on a 1 GB file with 4 KB requests.
+        YoloFS adds no measurable overhead on the staging area. OverlayFS
+        and BranchFS both pay a cost even on simple pass-through.
+      </p>
+    </div>
+
+    <div class="feature">
+      <h3>② Metadata — faster than OverlayFS, sometimes faster than ext4.</h3>
+      <p>
+        For metadata operations, the target file may live in the base
+        filesystem, a snapshot, or the staging area. YoloFS is faster than
+        OverlayFS across the board. <code>readdir</code>,
+        <code>rename</code>, and <code>unlink</code> on staged files are
+        even faster than ext4 — the in-memory override tree resolves them
+        without a directory-walk syscall. BranchFS is over 20× slower than
+        the others. Adding permission control adds negligible overhead;
+        4% on <code>stat</code> is the worst case.
+      </p>
+    </div>
+
+    <div class="feature">
+      <h3>③ Snapshot scalability — flat as snapshots grow.</h3>
+      <p>
+        We create a series of snapshots by overwriting a set of ten files
+        and measure whether subsequent operations slow down. <b>YoloFS reads
+        and writes are unaffected</b> — it always keeps a single current
+        override tree, so common operations don't traverse past snapshots.
+        OverlayFS fails past ~50 snapshots (the mount-option length exceeds
+        the kernel limit). BranchFS slows linearly. Commit time is
+        inherently linear in the number of snapshots; YoloFS still commits
+        faster because it reads from a single journal file instead of
+        querying the kernel per snapshot.
+      </p>
+    </div>
+
+    <div class="feature">
+      <h3>④ Realistic workload — as fast as ext4 on a real kernel patch series.</h3>
+      <p>
+        Adapted from an actual Linux kernel patch series: set up a git
+        worktree, build the kernel, then for each patch search/edit/rebuild/
+        commit, finally commit all changes to base.
+      </p>
+      <ul>
+        <li><b>YoloFS</b> — as fast as ext4 across the workflow, with only ~3.5 s of extra time to commit over 100k files.</li>
+        <li><b>OverlayFS</b> — <b>18% slower</b>: extra time in commands plus remounting whenever a snapshot is taken.</li>
+        <li><b>BranchFS</b> — has a bug and can't run past the initial build; adds over <b>2 minutes</b> to a 20-second build before failing — a large overhead even compared with LLM response latency.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ─────  BACK  ───── -->
+<section>
+  <div class="wrap">
+    <p>
+      For agent-side numbers (self-correction, user-prompt counts), see the
+      <a href="bench.html">benchmark page</a>.
+    </p>
+    <div class="cta-row">
+      <a class="btn primary" href="index.html">← Back to project</a>
+      <a class="btn" href="paper.pdf">Full paper (PDF)</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>
+      Drawn from §6 of the <a href="paper.pdf">paper</a>. © 2026 the authors.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

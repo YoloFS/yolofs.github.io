@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design and implementation · YoloFS</title>
+<meta name="description" content="Design and implementation of YoloFS: staging, snapshots, progressive permission, and how it stacks on top of any POSIX filesystem.">
+<meta property="og:title" content="YoloFS — Design and implementation">
+<meta property="og:description" content="How YoloFS stages every mutation, snapshots without destroying history, and gates accesses with progressive permission.">
+<meta property="og:type" content="article">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<meta property="og:image" content="https://yolofs.github.io/og.png">
+<link rel="stylesheet" href="styles.css">
+<script src="nav.js" defer></script>
+</head>
+<body>
+
+<div class="topnav"><div class="wrap"></div></div>
+
+<header class="hero slim">
+  <div class="wrap">
+    <p class="eyebrow">Design and implementation</p>
+    <h1>YoloFS: design and implementation.</h1>
+    <p class="subtitle">
+      How YoloFS stages mutations cheaply, snapshots without destroying
+      history, and gates accesses through evolving rules — and how it's
+      wired into Linux. Drawn from §4 of the <a href="paper.pdf">paper</a>.
+    </p>
+  </div>
+</header>
+
+<!-- ─────  REQUIREMENTS  ───── -->
+<section>
+  <div class="wrap">
+    <h2><span class="num">A.</span> Five requirements.</h2>
+    <p>
+      The two gaps from the <a href="study.html">study</a> imply five
+      requirements for any agent-native filesystem:
+    </p>
+    <ul>
+      <li><b>Visibility</b> into the current state of all changes.</li>
+      <li><b>Auditability</b> of the full session history.</li>
+      <li><b>Preventive control</b> before an access takes effect.</li>
+      <li><b>Corrective control</b> afterwards — revocability for users, recoverability for agents.</li>
+      <li><b>Transparency</b> in both directions: no agent changes, and any POSIX-compliant filesystem suffices, even without native CoW snapshots or extended attributes.</li>
+    </ul>
+    <p>And, of course, <b>performance</b> — every access sits on the critical path of an agent session.</p>
+  </div>
+</section>
+
+<!-- ─────  ARCHITECTURE  ───── -->
+<section>
+  <div class="wrap">
+    <h2><span class="num">B.</span> Architecture.</h2>
+    <p>
+      YoloFS is a Linux <b>stackable filesystem</b> that interposes between
+      the agent and the underlying filesystem. The user mounts YoloFS with a
+      project-local config file, then runs an agent either inside or through
+      it. To the agent, file operations look normal. To the user, the session
+      is no longer a stream of opaque commands.
+    </p>
+
+    <pre class="diagram-ascii">
+                User process / AI agent
+                          │
+                          ▼  VFS syscall
+   ┌──────────────────────────────────────────────┐
+   │                   <b>YoloFS</b>                       │
+   │   ┌────────────────┐    ┌──────────────────┐ │
+   │   │  Permission    │ →  │     Staging      │ │
+   │   │     gating     │    │     layer        │ │
+   │   └────────────────┘    └──────────────────┘ │
+   └──────────────────────────────────────────────┘
+                          │  vfs_*() on lower FS
+                          ▼
+              Lower filesystem (ext4 / xfs / …)</pre>
+
+    <p>
+      For every VFS operation the permission gating layer runs first: it
+      resolves the effective rule for the path. If the rule is
+      <em>ask</em>, the thread sleeps until the userspace daemon answers.
+      If the rule is <em>allow</em> or <em>read-only</em>, the staging layer
+      then routes the operation: reads come from the staged inode if the file
+      has been modified, otherwise from base; writes go to staged inodes.
+      Final I/O is delegated to the lower filesystem via <code>vfs_*()</code>.
+    </p>
+
+    <p>
+      YoloFS is a <b>kernel module + userspace CLI</b>. The kernel handles the
+      critical path; the CLI handles higher-level operations (diff, snapshot
+      management, commit) by reading shared on-disk state and issuing ioctls.
+      The mount sits on top of the entire root filesystem to ensure
+      completeness.
+    </p>
+  </div>
+</section>
+
+<!-- ─────  STAGING  ───── -->
+<section>
+  <div class="wrap">
+    <h2><span class="num">C.</span> Staging — fast, revocable mutations.</h2>
+
+    <h3>The problem with naïve staging</h3>
+    <p>
+      Mirroring the base directory tree in an upper layer (à la OverlayFS)
+      is too expensive: creating a file in a nested directory requires
+      creating all its parent directories in the upper layer; renaming a
+      file triggers a full copy even without content change; renaming a
+      directory recursively copies the entire subtree. YoloFS sits on the
+      critical path of every agent operation — it cannot pay this cost.
+    </p>
+
+    <h3>Decoupling contents from paths</h3>
+    <p>
+      YoloFS uses three structures, kept independent on purpose:
+    </p>
+    <ul>
+      <li>
+        <b>Flat file store.</b> When an existing file is first opened for
+        writing, its contents are copied into a staged file indexed by an
+        integer <code>ino</code>. New files and truncating writes
+        (<code>O_TRUNC</code>) skip the copy and allocate empty. After this
+        initial allocation, file I/O passes through to the lower filesystem
+        with no further indirection.
+      </li>
+      <li>
+        <b>In-memory override tree.</b> For each path, a node records where
+        its content resolves to. Three states:
+        <span style="color:var(--info)"><b>StagedFile</b>(ino, gen)</span> →
+        a file in the store;
+        <span style="color:var(--good)"><b>BasePath</b>(src)</span> →
+        a path in the lower filesystem (enables zero-copy renames);
+        <span style="color:var(--accent)"><b>Tombstone</b></span> →
+        marks the path as deleted. A path not in the tree is implicitly
+        <b>BasePath</b>(self).
+      </li>
+      <li>
+        <b>Append-only directory journal.</b> Every change to the override
+        tree appends a record. Three action records:
+        <code>S p ino</code> (stage), <code>R src dst</code> (rename),
+        <code>D p</code> (delete). The kernel only writes; the CLI reads the
+        journal to audit, diff, or commit.
+      </li>
+    </ul>
+
+    <h3>What this buys you</h3>
+    <ul>
+      <li><b>Zero-copy rename.</b> Renaming a file or even a 100k-file directory just rewires a few override-tree pointers and appends one journal record.</li>
+      <li><b>Zero-copy truncating write.</b> <code>echo&nbsp;&gt;&nbsp;file</code> doesn't read the original; it allocates an empty staged inode directly.</li>
+      <li><b>Single lookup.</b> Path resolution checks the override tree once, then falls through to base — versus OverlayFS's per-component upper+lower lookup.</li>
+      <li><b>Works on any base FS.</b> No whiteout support needed; staged data is just regular files in a hidden directory.</li>
+    </ul>
+
+    <p class="callout">
+      <b>Audit and commit are user-driven.</b> The journal and file store are
+      ordinary files on the base filesystem; the CLI parses the journal to
+      build a diff at any point. Commit replays journal actions onto the
+      base; abort drops the staged file store and clears the override tree.
+    </p>
+  </div>
+</section>
+
+<!-- ─────  SNAPSHOTS  ───── -->
+<section>
+  <div class="wrap">
+    <h2><span class="num">D.</span> Snapshots and travel — non-destructive history.</h2>
+
+    <h3>Why conventional rollback is wrong for agents</h3>
+    <p>
+      ZFS, Btrfs, and WAFL support rollback by restoring a snapshot and
+      <em>discarding</em> everything after. For an agent, that erases the
+      evidence of the mistake: the user can no longer inspect the abandoned
+      actions, and the agent cannot return to them later if the rollback
+      itself was wrong.
+    </p>
+
+    <h3>Generation-based snapshots</h3>
+    <p>
+      YoloFS keeps a single global <em>generation</em> counter incremented on
+      every snapshot or travel. Each <b>StagedFile</b> records the generation
+      it was created in. When a staged file is opened for writing and its
+      generation is stale, YoloFS performs copy-on-write — allocating a fresh
+      file rather than overwriting the old one. Old generations stay alive
+      as travel targets while the active branch grows.
+    </p>
+
+    <h3>Markers, segments, and liveness</h3>
+    <p>
+      Snapshots and travels are <b>markers</b> in the same append-only journal:
+      <code>P&nbsp;name</code> for snapshot, <code>T&nbsp;name&nbsp;g</code> for
+      a travel to generation <code>g</code>. Markers partition the journal
+      into <em>segments</em>. A travel makes the segments between target and
+      current state <em>dead</em>: they remain in the journal for audit and as
+      future travel targets, but no longer contribute to the staged view.
+      Liveness is itself dynamic — traveling can resurrect dead segments.
+    </p>
+
+    <h3>Rebuild past state in userspace; keep the kernel lean</h3>
+    <p>
+      When the agent travels, the CLI computes segment liveness, replays the
+      live journal segments in order to rebuild the override tree at the
+      target generation, serializes the result, and hands it to the kernel
+      via an ioctl. The kernel atomically swaps in the new override tree.
+      <b>Common operations like lookup and readdir stay O(1) regardless of
+      how many snapshots exist</b> — the kernel only ever sees the current
+      tree.
+    </p>
+  </div>
+</section>
+
+<!-- ─────  PERMISSION  ───── -->
+<section>
+  <div class="wrap">
+    <h2><span class="num">E.</span> Progressive permission.</h2>
+
+    <h3>Why conventional models don't fit</h3>
+    <p>
+      Unix DAC can't help — the agent runs as the user. Landlock, AppArmor,
+      and SELinux are <em>monotonically restricting</em>: tighten only.
+      Mount namespaces are <em>monotonically expanding</em>: expose only.
+      In practice, broad policies allow harmful accesses; narrow policies
+      block legitimate work and push users to disable safety entirely.
+    </p>
+
+    <h3>Rule tree</h3>
+    <p>
+      Each path can be one of five states:
+    </p>
+    <ul>
+      <li><b>allow</b> — full access in the subtree.</li>
+      <li><b>read-only</b> — reads OK, all writes denied.</li>
+      <li><b>deny</b> — blocked, but path remains visible in <code>readdir</code>.</li>
+      <li><b>hidden</b> — invisible: <code>readdir</code> skips it, <code>stat</code>/<code>open</code> behave as if absent.</li>
+      <li><b>ask</b> — default; blocks the thread until the user decides.</li>
+    </ul>
+
+    <h3>Top-down resolution, bottom-up revalidation</h3>
+    <p>
+      The effective permission is computed during path lookup: walk root →
+      target, carrying the current state and replacing it whenever a more
+      specific rule is encountered. The result is cached on the in-memory
+      inode (where VFS's <code>inode_permission</code> check fires).
+    </p>
+    <p>
+      A global version number guards the cache. When a rule is added or
+      removed, YoloFS bumps the version — no subtree traversal. On the next
+      access, a stale inode walks <em>up</em> the dentry chain until it finds
+      the nearest ancestor with a rule. <b>Revalidation cost is proportional
+      to path depth, not subtree size.</b>
+    </p>
+
+    <h3>Ask protocol</h3>
+    <p>
+      When access hits an <em>ask</em> state, the kernel blocks the thread
+      and enqueues a request — path, operation, process name — for the
+      userspace daemon. The daemon answers with allow/deny and may install a
+      rule for future accesses, <em>at any path</em> (not just the one that
+      triggered). Common pattern: install on a parent so the next 100
+      accesses to the subtree don't ask again.
+    </p>
+
+    <p class="callout">
+      <b>Why this matters for friction.</b> Codex's "don't ask again for
+      <code>sed&nbsp;-i</code>" rule is either too broad (allow any in-place
+      edit) or too narrow (a 300-char one-liner that won't recur). YoloFS's
+      rule sits on the <em>file path the agent actually touched</em> — so
+      it generalizes correctly, regardless of which command issued the syscall.
+    </p>
+  </div>
+</section>
+
+<!-- ─────  IMPLEMENTATION  ───── -->
+<section>
+  <div class="wrap">
+    <h2><span class="num">F.</span> Implementation.</h2>
+
+    <div class="stats">
+      <div class="stat info-color"><span class="n">2.5k</span><div class="l">LoC of C in the kernel module</div></div>
+      <div class="stat good-color"><span class="n">6.2k</span><div class="l">LoC of Rust in the userspace CLI</div></div>
+      <div class="stat"><span class="n">Linux 6.8</span><div class="l">stackable VFS interposition</div></div>
+    </div>
+
+    <ul>
+      <li><b>Override tree and rule tree</b> are maintained on VFS dentries — staged entries are pinned, so the dcache stays correct and rename chains resolve naturally.</li>
+      <li><b>Staged data</b> lives under <code>.yolofs/</code> in the project. File contents go in <code>files/</code>, sharded into subdirectories to avoid huge flat directories. The journal is at <code>.yolofs/journal</code>.</li>
+      <li><b>Configuration</b> is a <code>yolofs.toml</code> in the project root: rules, mount options, ask defaults, timeouts, checkpoint policy.</li>
+      <li><b>Unprivileged mounting</b> via user namespaces — no root needed.</li>
+      <li><b>Composable</b>: staging and permission gating are independent layers, either can be disabled at mount time.</li>
+      <li><b>Claude Code integration</b> uses Claude's <code>PreToolUse</code> hook for Bash to route shell commands through the YoloFS CLI, so every command runs inside the staged sandbox.</li>
+    </ul>
+
+    <p>
+      For an end-to-end CLI walkthrough — init, rules, ask prompts, diff,
+      travel, and commit — see the demo on the
+      <a href="index.html#yolofs">home page</a>.
+    </p>
+  </div>
+</section>
+
+<!-- ─────  COMPARISONS  ───── -->
+<section>
+  <div class="wrap">
+    <h2><span class="num">G.</span> How YoloFS differs from existing systems.</h2>
+
+    <h3>vs. OverlayFS (staging model)</h3>
+    <div class="results">
+      <table>
+        <thead>
+          <tr><th>Aspect</th><th>YoloFS</th><th>OverlayFS</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Model</td><td>Explicit commit / abort with checkpoints</td><td>Live union — upper <em>is</em> the state</td></tr>
+          <tr><td>Truncating write</td><td>Zero-copy (empty inode)</td><td>Full copy-up, then truncate</td></tr>
+          <tr><td>Rename</td><td>Zero-copy via dirent metadata</td><td><code>vfs_rename()</code> with copy-up</td></tr>
+          <tr><td>Lookup</td><td>One lookup (override tree → base)</td><td>Two lookups (upper + lower)</td></tr>
+          <tr><td>On-disk format</td><td>Flat inode store + journal — any base FS</td><td>Requires whiteout support (ext4/xfs)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>vs. Landlock (permission model)</h3>
+    <div class="results">
+      <table>
+        <thead>
+          <tr><th>Aspect</th><th>YoloFS</th><th>Landlock</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Default policy</td><td><b>Ask</b> (block + prompt)</td><td>Deny (handled rights only)</td></tr>
+          <tr><td>Overlapping rules</td><td>Nearest-ancestor wins (both directions)</td><td>Additive only — can't deny child of allowed parent</td></tr>
+          <tr><td>Dynamic rules</td><td>Add / remove / change at runtime</td><td>Immutable after enforce</td></tr>
+          <tr><td>Steady-state cost</td><td>O(1) via inode cache + version counter</td><td>O(depth × log&nbsp;n) per ancestor</td></tr>
+          <tr><td>Scope</td><td>Per-mount</td><td>Per-process (cred-attached)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>vs. ZFS / Btrfs snapshots</h3>
+    <p>
+      Native CoW snapshots cover predefined namespaces and target archival or
+      backup workloads. They do not adapt to changes made by an interactive
+      agent (granularity is fixed) and they support only destructive
+      rollback. YoloFS snapshots adapt to the agent's actual changes, work on
+      <em>any</em> base filesystem, and preserve the full branching history
+      so the user can audit abandoned branches and the agent can travel
+      forward again.
+    </p>
+
+    <h3>vs. version-control systems (git, etc.)</h3>
+    <p>
+      Git handles text-based source files inside one repository. Agents
+      operate on the version history itself (<code>git&nbsp;reset&nbsp;--hard</code>,
+      <code>git&nbsp;clean</code>) and routinely destroy uncommitted work that
+      git alone cannot recover. YoloFS treats git commands as ordinary file
+      operations — so the user can recover even if the version history itself
+      is corrupted by the agent.
+    </p>
+  </div>
+</section>
+
+<!-- ─────  PERF NOTE  ───── -->
+<section>
+  <div class="wrap">
+    <h2><span class="num">H.</span> Performance, briefly.</h2>
+    <p>
+      Single-file I/O matches bare ext4. Metadata operations are typically
+      faster than OverlayFS — sometimes faster than ext4 for files that are
+      already staged. Snapshots scale to hundreds without slowing reads or
+      writes. On a real kernel-development workflow (build, edit, rebuild,
+      commit, across 100k files) YoloFS adds ~3.5&nbsp;s of commit overhead
+      to a workload that's <em>otherwise as fast as ext4</em>; OverlayFS is
+      18% slower; BranchFS (a recent FUSE-based research filesystem) adds
+      2&nbsp;minutes to a 20-second build. Full numbers are in §6 of the
+      paper.
+    </p>
+    <p class="spaced">
+      <a class="btn" href="perf.html">See the performance evaluation →</a>
+    </p>
+  </div>
+</section>
+
+<!-- ─────  BACK  ───── -->
+<section>
+  <div class="wrap">
+    <p>
+      For how we evaluated all this, see the
+      <a href="bench.html">benchmark page</a> and the
+      <a href="perf.html">performance page</a>.
+    </p>
+    <div class="cta-row">
+      <a class="btn primary" href="index.html">← Back to project</a>
+      <a class="btn" href="paper.pdf">Full paper (PDF)</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>
+      Drawn from §4 of the <a href="paper.pdf">paper</a>. © 2026 the authors.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

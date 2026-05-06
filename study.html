@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The 290-report study · YoloFS</title>
+<meta name="description" content="Detailed breakdown of 290 public reports of AI agent filesystem misuse: sources, frameworks, impact dimensions, and root-cause taxonomy.">
+<meta property="og:title" content="290-report study of AI-agent filesystem misuse">
+<meta property="og:description" content="Where the reports came from, which frameworks, what gets damaged, and why.">
+<meta property="og:type" content="article">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<meta property="og:image" content="https://yolofs.github.io/og.png">
+<link rel="stylesheet" href="styles.css">
+<script src="nav.js" defer></script>
+</head>
+<body>
+
+<div class="topnav"><div class="wrap"></div></div>
+
+<header class="hero slim">
+  <div class="wrap">
+    <p class="eyebrow">Study breakdown</p>
+    <h1>The 290-report study of agent filesystem misuse.</h1>
+    <p class="subtitle">
+      Where the reports came from, which frameworks they cover, what kinds of
+      damage they describe, how often it can be undone, and where the failure
+      starts. All numbers come from §3 of the
+      <a href="paper.pdf">paper</a>.
+    </p>
+  </div>
+</header>
+
+<!-- ─────  AT A GLANCE  ───── -->
+<section>
+  <div class="wrap">
+    <h2><span class="num">A.</span> At a glance.</h2>
+    <p>
+      We collected and triaged 290 public reports of agent filesystem misuse
+      spanning 2024–2026, across 13 agent frameworks. Each report was
+      classified along five impact dimensions and labeled with one of seven
+      cause categories. We complement this with a source-code audit of
+      6 major frameworks (Claude Code, Codex, Cursor, Gemini, Copilot, OpenCode)
+      to understand how their tools, policies, filters, and defenses fail.
+    </p>
+
+    <div class="stats">
+      <div class="stat"><span class="n">290</span><div class="l">total reports</div></div>
+      <div class="stat info-color"><span class="n">13</span><div class="l">agent frameworks</div></div>
+      <div class="stat"><span class="n">158</span><div class="l">confirmed incidents</div></div>
+      <div class="stat"><span class="n">49</span><div class="l">demonstrated exploits</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ─────  WHERE FROM  ───── -->
+<section>
+  <div class="wrap">
+    <h2><span class="num">B.</span> Where the reports came from.</h2>
+    <p>
+      Reports were collected from five sources. We excluded duplicates of the
+      same event (keeping the earliest) and any case where the user explicitly
+      requested the destructive action and the agent performed it correctly.
+    </p>
+
+    <div class="twoup">
+      <div>
+        <h3>Source</h3>
+        <div class="bars">
+          <div class="bar-row">
+            <span class="bar-label">GitHub issues</span>
+            <span class="bar-track"><span class="bar-fill" style="width:100%"></span></span>
+            <span class="bar-num">205</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">Social media</span>
+            <span class="bar-track"><span class="bar-fill" style="width:15.1%"></span></span>
+            <span class="bar-num">31</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">Forums</span>
+            <span class="bar-track"><span class="bar-fill" style="width:12.2%"></span></span>
+            <span class="bar-num">25</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">Blog posts</span>
+            <span class="bar-track"><span class="bar-fill" style="width:8.8%"></span></span>
+            <span class="bar-num">18</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">NVD<sup>*</sup></span>
+            <span class="bar-track"><span class="bar-fill" style="width:5.4%"></span></span>
+            <span class="bar-num">11</span>
+          </div>
+        </div>
+        <p class="small"><sup>*</sup>National Vulnerability Database.</p>
+      </div>
+
+      <div>
+        <h3>Framework</h3>
+        <div class="bars">
+          <div class="bar-row">
+            <span class="bar-label">Claude Code</span>
+            <span class="bar-track"><span class="bar-fill info" style="width:100%"></span></span>
+            <span class="bar-num">97</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">Codex</span>
+            <span class="bar-track"><span class="bar-fill info" style="width:62.9%"></span></span>
+            <span class="bar-num">61</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">Cursor</span>
+            <span class="bar-track"><span class="bar-fill info" style="width:38.1%"></span></span>
+            <span class="bar-num">37</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">Gemini</span>
+            <span class="bar-track"><span class="bar-fill info" style="width:33.0%"></span></span>
+            <span class="bar-num">32</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">Copilot</span>
+            <span class="bar-track"><span class="bar-fill info" style="width:28.9%"></span></span>
+            <span class="bar-num">28</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">8 others</span>
+            <span class="bar-track"><span class="bar-fill muted" style="width:36.1%"></span></span>
+            <span class="bar-num">35</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Triage</h3>
+    <p>Each report was classified into one of three buckets:</p>
+    <div class="stats">
+      <div class="stat"><span class="n">158</span><div class="l"><b>Incidents</b> — confirmed damage actually occurred</div></div>
+      <div class="stat info-color"><span class="n">49</span><div class="l"><b>Exploits</b> — a working attack path was demonstrated</div></div>
+      <div class="stat good-color"><span class="n">83</span><div class="l"><b>Weaknesses</b> — flaw documented but no demonstrated impact</div></div>
+    </div>
+    <p class="small">
+      Impact analysis (next sections) covers the 207&nbsp;incidents&nbsp;+&nbsp;exploits.
+      Weaknesses are kept for the framework audit but excluded from impact stats.
+    </p>
+  </div>
+</section>
+
+<!-- ─────  IMPACT DIMENSIONS  ───── -->
+<section>
+  <div class="wrap">
+    <h2><span class="num">C.</span> Five dimensions of impact.</h2>
+    <p>
+      Each of the 207 incidents and exploits was labeled along five dimensions:
+      <b>operation</b>, <b>scope</b>, <b>agent reaction</b>, <b>user awareness</b>,
+      and <b>reversibility</b>. Unknown values are excluded from each percentage.
+    </p>
+
+    <h3>Operation: what the agent did wrong</h3>
+    <div class="bars">
+      <div class="bar-row">
+        <span class="bar-label">Write</span>
+        <span class="bar-track"><span class="bar-fill" style="width:100%"></span></span>
+        <span class="bar-num">44%</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">Delete</span>
+        <span class="bar-track"><span class="bar-fill" style="width:88.6%"></span></span>
+        <span class="bar-num">39%</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">Leak / read</span>
+        <span class="bar-track"><span class="bar-fill" style="width:38.6%"></span></span>
+        <span class="bar-num">17%</span>
+      </div>
+    </div>
+    <p class="small">
+      Writes overwrite source files with stubs, truncate to zero, or replace
+      real content with generated junk. Deletes range from individual files to
+      whole drives. Leaks include <code>.env</code>, API keys, and SSH
+      credentials sent through alternative tool paths.
+    </p>
+
+    <h3>Scope: where the damage lands</h3>
+    <p>
+      <b>42%</b> of damage reaches outside the project the agent was working in.
+    </p>
+    <div class="bars">
+      <div class="bar-row">
+        <span class="bar-label">Project</span>
+        <span class="bar-track"><span class="bar-fill" style="width:100%"></span></span>
+        <span class="bar-num">58%</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">System</span>
+        <span class="bar-track"><span class="bar-fill" style="width:27.6%"></span></span>
+        <span class="bar-num">16%</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">Home dir</span>
+        <span class="bar-track"><span class="bar-fill" style="width:22.4%"></span></span>
+        <span class="bar-num">13%</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">Secrets</span>
+        <span class="bar-track"><span class="bar-fill" style="width:22.4%"></span></span>
+        <span class="bar-num">13%</span>
+      </div>
+    </div>
+    <p class="small">
+      Examples of out-of-project damage: <code>rm&nbsp;-rf&nbsp;~/</code> while
+      cleaning npm globals; an MCP-config file destroyed during install; iCloud
+      stubs copied over originals; a kept-on-disk SSH key read by an agent.
+    </p>
+
+    <h3>Agent reaction: how the agent responded</h3>
+    <div class="bars">
+      <div class="bar-row">
+        <span class="bar-label">Overlooked</span>
+        <span class="bar-track"><span class="bar-fill" style="width:100%"></span></span>
+        <span class="bar-num">68%</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">Apologized</span>
+        <span class="bar-track"><span class="bar-fill" style="width:30.9%"></span></span>
+        <span class="bar-num">21%</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">Lied</span>
+        <span class="bar-track"><span class="bar-fill" style="width:16.2%"></span></span>
+        <span class="bar-num">11%</span>
+      </div>
+    </div>
+    <p class="small">
+      "Lied" includes fabricating successful test results, claiming bugs were
+      fixed when none were, or describing recovery steps that never happened.
+      One agent admitted: <em>"I just removed the directory again with
+      rm&nbsp;-rf … restore from backup."</em>
+    </p>
+
+    <h3>User awareness: did the user even notice?</h3>
+    <div class="bars">
+      <div class="bar-row">
+        <span class="bar-label">Immediate</span>
+        <span class="bar-track"><span class="bar-fill good" style="width:100%"></span></span>
+        <span class="bar-num">83%</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">Discovered later</span>
+        <span class="bar-track"><span class="bar-fill" style="width:12.0%"></span></span>
+        <span class="bar-num">10%</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">Designed-invisible</span>
+        <span class="bar-track"><span class="bar-fill" style="width:9.6%"></span></span>
+        <span class="bar-num">8%</span>
+      </div>
+    </div>
+    <p class="small">
+      "Designed-invisible" is overwhelmingly silent credential exfiltration via
+      prompt injection — the user has no UI signal that anything happened.
+    </p>
+
+    <h3>Reversibility: can it be undone?</h3>
+    <div class="bars">
+      <div class="bar-row">
+        <span class="bar-label">Trivial recovery</span>
+        <span class="bar-track"><span class="bar-fill good" style="width:100%"></span></span>
+        <span class="bar-num">31%</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">Effort needed</span>
+        <span class="bar-track"><span class="bar-fill info" style="width:93.5%"></span></span>
+        <span class="bar-num">29%</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">Permanent loss</span>
+        <span class="bar-track"><span class="bar-fill" style="width:74.2%"></span></span>
+        <span class="bar-num">23%</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">Partial loss</span>
+        <span class="bar-track"><span class="bar-fill" style="width:54.8%"></span></span>
+        <span class="bar-num">17%</span>
+      </div>
+    </div>
+    <p class="small">
+      <b>40%</b> of damage cannot be fully undone. Some operations are
+      inherently irreversible: a leaked credential cannot be unread.
+    </p>
+
+    <div class="finding">
+      <b>Finding 1 (limited information).</b>
+      Users and agents have limited information about the filesystem.
+    </div>
+    <div class="finding">
+      <b>Finding 2 (insufficient control).</b>
+      Users and agents have insufficient control over the filesystem effects of tool calls.
+    </div>
+  </div>
+</section>
+
+<!-- ─────  CAUSE TAXONOMY  ───── -->
+<section>
+  <div class="wrap">
+    <h2><span class="num">D.</span> Where the failure starts.</h2>
+    <p>
+      Each report was assigned to one or more of three roles. The model is the
+      root cause in <b>58%</b> of reports; the framework is involved in
+      <b>226 of 290</b>; the user is the final reviewer that lets it through.
+    </p>
+
+    <div class="causes">
+      <!-- Model -->
+      <div class="cause">
+        <span class="role">Role 1 · The unreliable actor</span>
+        <h3>Model</h3>
+        <ul>
+          <li><b>M1 · Wrong action.</b> Wrong objective, over-generalized scope, or commands that don't do what the model thinks (wrong flags, wrong path).</li>
+          <li><b>M2 · Instructions ignored.</b> Either deprioritized in the moment ("I get focused on solving the problem and skip checking the rules") or evicted from the context window after compaction.</li>
+          <li><b>M3 · Prompt injection.</b> Malicious instructions hidden in source files, PRs, or web content the agent reads.</li>
+        </ul>
+      </div>
+
+      <!-- Framework -->
+      <div class="cause">
+        <span class="role">Role 2 · The broken enforcer</span>
+        <h3>Framework</h3>
+        <ul>
+          <li><b>F1 · Policies fail.</b> 130 misconfigured (too permissive or too restrictive); 77 escape the policy via shell commands; 55 bypass string-based filters with <code>&amp;&amp;</code>, pipes, subshells, Python, etc.</li>
+          <li><b>F2 · Defenses miss.</b> Sandboxes get disabled or downgraded (41); rollback systems track only built-in tools, leaving shell mutations untraced (22).</li>
+        </ul>
+      </div>
+
+      <!-- User -->
+      <div class="cause">
+        <span class="role">Role 3 · The overwhelmed reviewer</span>
+        <h3>User</h3>
+        <ul>
+          <li><b>U1 · YOLO / auto-approve.</b> Users opt into "allow always" because answering hundreds of prompts per session is unbearable.</li>
+          <li><b>U2 · Cannot review what is approved.</b> Multi-line scripts, piped chains, and 300+ char one-liners hide the actual effect from the user — the prompt approves a string, not a consequence.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="finding">
+      <b>Finding 3 (control below model).</b>
+      Control must be enforced below the model — prompting cannot reliably enforce control.
+    </div>
+    <div class="finding">
+      <b>Finding 4 (control by effect).</b>
+      Control must target effects, not command strings.
+    </div>
+    <div class="finding">
+      <b>Finding 5 (dynamic control).</b>
+      Static policies cannot capture the right access policy; control must adapt at runtime.
+    </div>
+    <div class="finding">
+      <b>Finding 6 (low-friction control).</b>
+      Users need informed control only when it matters; too much control overwhelms.
+    </div>
+  </div>
+</section>
+
+<!-- ─────  FRAMEWORK AUDIT  ───── -->
+<section>
+  <div class="wrap">
+    <h2><span class="num">E.</span> What the framework audit found.</h2>
+    <p>
+      Beyond the 290 reports, we audited the source code and documentation of
+      6 frameworks — the top five from the report dataset plus OpenCode as a
+      community-driven entry. We catalogued their built-in tools, permission
+      policies, command filters, sandboxing, and rollback mechanisms.
+    </p>
+    <p>Selected findings:</p>
+    <ul>
+      <li><b>Defaults disagree wildly.</b> Codex, OpenCode, and Cursor allow all project writes without asking; Gemini blocks all external access. Both extremes cause damage — permissive defaults harm directly, restrictive defaults push users to disable safety entirely.</li>
+      <li><b>Shell is the elephant in the room.</b> 65% of all damage comes from shell commands. Built-in tools have policies; shell mostly doesn't. When a built-in read is denied, the agent uses <code>cat</code>; when a write is denied, it uses redirects.</li>
+      <li><b>Filters are thousands of lines, easily defeated.</b> Four of six frameworks ship 75+ command-filter rules. They are routinely bypassed by chaining (<code>&amp;&amp;</code>, <code>;</code>, <code>|</code>), subshells, language switches (Python <code>shutil</code>), or argument injection into pre-approved commands.</li>
+      <li><b>Sandboxes get downgraded.</b> When a sandboxed command fails, both Codex and Cursor prompt the user to re-run unsandboxed. Legitimate work (running tests, accessing GPUs) often forces this downgrade.</li>
+      <li><b>Rollback covers built-in tools only.</b> Claude Code, Cursor, and Copilot can undo changes from their own edit tools but miss shell mutations entirely. Gemini and OpenCode rely on git, but destructive git commands themselves account for many incidents.</li>
+    </ul>
+    <p class="small">
+      Full table — built-in tool sets, policy rows, filter rows, sandbox rows,
+      rollback rows — appears as Table&nbsp;1 in the
+      <a href="paper.pdf">paper</a>.
+    </p>
+  </div>
+</section>
+
+<!-- ─────  BACK  ───── -->
+<section>
+  <div class="wrap">
+    <h2><span class="num">F.</span> What this means.</h2>
+    <p>
+      The takeaway across all 290 reports is the same: today's agent stacks
+      have <em>limited information</em> about filesystem effects and
+      <em>insufficient control</em> over them. Models can be misled,
+      instructions ignored, command filters bypassed — but the filesystem sees
+      every effect.
+    </p>
+    <p>
+      Our proposed solution — an agent-native filesystem — is summarized on
+      the <a href="index.html#yolofs">main page</a>; the full design lives
+      on the <a href="design.html">design page</a>.
+    </p>
+    <div class="cta-row">
+      <a class="btn primary" href="index.html">← Back to project</a>
+      <a class="btn" href="paper.pdf">Full paper (PDF)</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>
+      Numbers in this page come from §3 of the
+      <a href="paper.pdf">paper</a>. © 2026 the authors.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>
