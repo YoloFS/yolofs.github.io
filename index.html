@@ -248,14 +248,14 @@
 <span class="k">$</span> yolo checkpoint <span class="s">"pre-build"</span>
 
 <span class="c"># 3.  Progressive permission: the first access outside the rules asks.</span>
-<span class="k">$</span> yolo exec -- cat <span class="p">~/.ssh/id_rsa</span>
+<span class="k">$</span> yolo run -- cat <span class="p">~/.ssh/id_rsa</span>
 <span class="ask">[ask]</span> <span class="p">~/.ssh/id_rsa</span>   <span class="dim">read</span>
        <span class="dim">(a) once   (A) allow+remember   (d) deny   (D) deny+remember</span>
 <span class="k">&gt;</span> <span class="you">D</span>
 <span class="ok">✓</span> rule added: <span class="p">~/.ssh</span> = deny
 
 <span class="c"># 4.  Run something risky — every effect goes to staging, not disk.</span>
-<span class="k">$</span> yolo exec -- make package
+<span class="k">$</span> yolo run -- make package
 <span class="k">$</span> yolo diff
 <span class="del">−</span>  src/                              <span class="dim">deleted (47 files)</span>
 <span class="mod">M</span>  README.md                         <span class="dim">+5 −0</span>
