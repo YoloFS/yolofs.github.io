@@ -21,7 +21,7 @@
     { key: 'design', href: 'design.html', label: 'Design' },
     { key: 'bench',  href: 'bench.html',  label: 'Bench' },
     { key: 'perf',   href: 'perf.html',   label: 'Perf' },
-    { key: 'paper',  href: 'paper.pdf',   label: 'Paper' }
+    { key: 'paper',  href: 'https://arxiv.org/pdf/2604.13536',   label: 'Paper' }
   ];
 
   // All pages currently live at the site root.
