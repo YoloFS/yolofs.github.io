@@ -272,11 +272,11 @@ img.perf { width: 100%; max-height: 9in; object-fit: contain; margin: 0.08in 0; 
 .outcomes .an.us { color: var(--good); }
 .obar { display: flex; gap: 3pt; height: 0.48in; }
 .obar span { display: flex; align-items: center; justify-content: center; border-radius: 6pt; font: 700 var(--t-small) "Red Hat Display", sans-serif; color: #fff; }
-.o-ok { background: var(--good); }
-.o-uc { background: #7fbf93; color: #0f3d20 !important; }
-.o-ask { background: #a4a7ae; }
-.o-x { background: #d0433b; }
-.o-na { background: var(--gray); color: var(--muted) !important; }
+.o-ok { background: #a8d8b5; color: #14502a !important; }
+.o-uc { background: #d6eedd; color: #1f7a3f !important; }
+.o-ask { background: #dcdee2; color: var(--charcoal) !important; }
+.o-x { background: #f2c4c1; color: var(--red-dark) !important; }
+.o-na { background: #f0f0ef; color: var(--muted) !important; }
 .olegend { margin: 0 0 0.14in; font-size: var(--t-small); color: var(--muted); }
 .olegend span { display: inline-block; width: 0.26in; height: 0.26in; border-radius: 4pt; vertical-align: -0.03in; margin: 0 0.06in 0 0.16in; }
 .olegend span:first-child { margin-left: 0; }
