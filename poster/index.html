@@ -145,7 +145,7 @@
         <img class="archfig" src="fig/arch.svg" alt="YoloFS architecture: agent and user use the yolo CLI; commands run on the YoloFS kernel filesystem over the base filesystem">
       </div>
       <hr class="div">
-        <div class="mhead"><h3>📝 <b>Staging</b> for user review</h3><p class="idea"><b>Challenge:</b> Rename copies whole files &nbsp; <b>Insight:</b> Decouple contents from paths</p></div>
+        <div class="mhead"><h3>📝 <b>Staging</b> for user review</h3><p class="idea">Rename copies whole files → <b>decouple contents from paths</b></p></div>
         <div class="srow"><b>Flat file store</b><span class="tile st">#1</span><span class="tile st">#2</span></div>
         <div class="srow"><b>Override tree</b><span class="sd">path → staged file, base file, or ∅</span></div>
         <div class="stage">
@@ -156,11 +156,11 @@
         </div>
         <div class="srow jr"><b>Journal</b><span class="rec">S new 1</span><span class="rec">S foo 2</span><span class="rec">R bar baz</span><span class="rec">D old</span></div>
       <hr class="div">
-        <div class="mhead"><h3>📸 <b>Snapshots and travel</b> for self-correction</h3><p class="idea"><b>Challenge:</b> Stacked layers slow lookups &nbsp; <b>Insight:</b> Separate history from present</p></div>
+        <div class="mhead"><h3>📸 <b>Snapshots and travel</b> for self-correction</h3><p class="idea">Stacked layers slow lookups → <b>separate history from present</b></p></div>
         <div class="srow"><b>Journal</b><span class="grp"><em>cmd 1</em><span class="rec">S</span><span class="rec">R</span></span><span class="rec mk">P1</span><span class="grp bad"><em>cmd 2: evil.sh</em><span class="rec">S</span><span class="rec">D</span><span class="rec">D</span></span><span class="rec mk">P2</span><span class="rec tr">T → P1</span></div>
         <p class="srow sd">P = snapshot marker &nbsp; T = travel record</p>
       <hr class="div">
-        <div class="mhead"><h3>🔐 <b>Progressive permission</b> for agent access</h3><p class="idea"><b>Challenge:</b> Can't predict accesses upfront &nbsp; <b>Insight:</b> Accesses refine the policy</p></div>
+        <div class="mhead"><h3>🔐 <b>Progressive permission</b> for agent access</h3><p class="idea">Can't predict accesses upfront → <b>accesses refine the policy</b></p></div>
         <div class="perm3">
           <span class="t0"><span class="mono">~/</span><span class="chip ask">ask</span></span><span class="st">1. 🤖 <code>cargo build</code> reads <code>~/.ssh/id_rsa</code></span>
           <span class="t1"><span class="mono">proj/</span><span class="chip bs">allow</span></span><span class="st">2. ⏸️ inherits ask: thread paused</span>
