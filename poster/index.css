@@ -248,7 +248,7 @@ main {
 .steps li { display: grid; grid-template-columns: 0.6in 1fr; gap: 0.12in; align-items: start; margin-bottom: 0.14in; }
 .steps li > span { font-size: 36pt; line-height: 1.1; }
 
-img.perf { width: 100%; margin: 0.08in 0; }
+img.perf { width: 100%; max-height: 5.6in; object-fit: contain; margin: 0.08in 0; }
 .causes .cn { white-space: nowrap; }
 .quote.insight { font-style: normal; }
 .quote.insight::before { content: "💡"; }
@@ -273,10 +273,22 @@ img.perf { width: 100%; margin: 0.08in 0; }
 .obar { display: flex; gap: 3pt; height: 0.48in; }
 .obar span { display: flex; align-items: center; justify-content: center; border-radius: 6pt; font: 700 var(--t-small) "Red Hat Display", sans-serif; color: #fff; }
 .o-ok { background: var(--good); }
-.o-uc { background: var(--ctrl); }
-.o-ask { background: #9a9ca3; }
-.o-x { background: #d9a3a0; color: var(--red-dark) !important; }
+.o-uc { background: #7fbf93; color: #0f3d20 !important; }
+.o-ask { background: #a4a7ae; }
+.o-x { background: #d0433b; }
 .o-na { background: var(--gray); color: var(--muted) !important; }
 .olegend { margin: 0 0 0.14in; font-size: var(--t-small); color: var(--muted); }
 .olegend span { display: inline-block; width: 0.26in; height: 0.26in; border-radius: 4pt; vertical-align: -0.03in; margin: 0 0.06in 0 0.16in; }
 .olegend span:first-child { margin-left: 0; }
+
+/* autonomy: prompts per task, one bar per agent */
+.pchart { display: grid; grid-template-columns: auto 1fr auto; gap: 0.1in 0.25in; align-items: center; margin: 0.12in 0 0; }
+.pchart .ph { font-size: var(--t-small); color: var(--muted); }
+.pchart .an { font: 700 var(--t-small) "Red Hat Display", sans-serif; white-space: nowrap; text-align: right; }
+.pchart .an.us { color: var(--good); }
+.pbar { display: flex; align-items: center; gap: 0.12in; height: 0.48in; }
+.pbar span { height: 100%; border-radius: 6pt; }
+.pbar b { font: 800 var(--t-small) "Red Hat Display", sans-serif; }
+.p-us { background: var(--good); }
+.p-base { background: #a4a7ae; }
+.pchart .sr { font-size: var(--t-small); color: var(--muted); text-align: right; }

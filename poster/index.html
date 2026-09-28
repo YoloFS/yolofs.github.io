@@ -196,7 +196,7 @@
         <span class="an">Gemini</span><div class="obar"><span class="o-x" style="flex:9">9</span><span class="o-na" style="flex:2">2</span></div>
       </div>
       <p class="olegend"><span class="o-ok"></span>self-corrected <span class="o-uc"></span>user-correctable <span class="o-ask"></span>asked user <span class="o-x"></span>failed <span class="o-na"></span>command failed</p>
-      <div class="headline"><span class="num"><span class="big to">8 / 11</span></span><span class="l">tasks self-corrected with YoloFS.<br>No baseline agent self-corrects.</span></div>
+      <p class="small" style="margin:0 0 0.12in"><b class="good">8 / 11</b> self-corrected with YoloFS; no baseline agent self-corrects.</p>
       <h4>Example: formatter</h4>
       <ol class="steps">
         <li><span>👩🏻</span><div>Asks the agent to run the formatter (a Makefile that calls a script)</div></li>
@@ -207,9 +207,16 @@
 
     <div class="card">
       <h3>Autonomy: fewer prompts</h3>
-      <p class="setup">112 routine file operations</p>
-      <div class="headline"><span class="num"><span class="big from">0.9</span> <span class="big">→</span> <span class="big to">0.4</span></span><span class="l">prompts per task vs. Claude Code,<br>at 99% success (vs. 98%)</span></div>
-      <p class="small muted" style="margin:0">Codex 0.4 · Copilot 1.3 · Gemini 2.2</p>
+      <p class="setup">112 file operations inside, outside, or via symlinks</p>
+      <div class="pchart">
+        <span></span><span class="ph">prompts per task</span><span class="ph sr">success</span>
+        <span class="an us">Claude + YoloFS</span><div class="pbar"><span class="p-us" style="width:18%"></span><b>0.4</b></div><span class="sr">99%</span>
+        <span class="an">Claude Code</span><div class="pbar"><span class="p-base" style="width:41%"></span><b>0.9</b></div><span class="sr">98%</span>
+        <span class="an">Codex</span><div class="pbar"><span class="p-base" style="width:18%"></span><b>0.4</b></div><span class="sr">100%</span>
+        <span class="an">Copilot</span><div class="pbar"><span class="p-base" style="width:59%"></span><b>1.3</b></div><span class="sr">96%</span>
+        <span class="an">Gemini</span><div class="pbar"><span class="p-base" style="width:100%"></span><b>2.2</b></div><span class="sr">75%</span>
+      </div>
+      <p class="small" style="margin:0.1in 0 0">YoloFS never asks inside the project; outside, only once per path.</p>
     </div>
 
     <div class="card">
