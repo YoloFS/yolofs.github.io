@@ -209,13 +209,11 @@
     <div class="card">
       <h3>Autonomy: fewer prompts</h3>
       <ul class="design">
-        <li><b>112 tasks:</b> 18 operations (read, delete, copy, move, …) × 5–7 paths</li>
+        <li><b>112 tasks:</b> one file operation each (read, delete, copy, move, …)</li>
         <li>Paths inside the project, outside it, or through a symlink</li>
-        <li>Each task is one operation; a checker verifies the result</li>
-        <li><b>User interaction:</b> any prompt the user must answer</li>
-        <li>Driver answers "allow, don't ask again", so each prompt counts once</li>
+        <li>We count every prompt the user must answer</li>
       </ul>
-      <div class="headline"><span class="num"><span class="big from">0.9</span> <span class="big">→</span> <span class="big to">0.4</span></span><span class="l">prompts per task vs. Claude Code,<br>at 99% success (vs. 98%)</span></div>
+      <p class="small" style="margin:0.1in 0 0"><b class="muted">0.9</b> → <b class="good">0.4</b> prompts per task vs. Claude Code, at 99% success</p>
     </div>
 
     <div class="card">
