@@ -1,8 +1,9 @@
 .PHONY: serve clean
 
 PORT   ?= 8080
-CHROME ?= $(firstword $(wildcard $(HOME)/.cache/ms-playwright/chromium_headless_shell-*/*/chrome-headless-shell) \
-                       $(shell command -v chromium google-chrome 2>/dev/null))
+CHROME ?= $(firstword $(wildcard "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome") \
+                       $(shell command -v google-chrome chromium 2>/dev/null) \
+                       $(wildcard $(HOME)/.cache/ms-playwright/chromium_headless_shell-*/*/chrome-headless-shell))
 
 # Print to a 48"x36" PDF and fail if content spills onto a second page.
 poster.pdf: index.html index.css $(wildcard fig/*)
