@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YoloFS Poster</title>
+<link rel="stylesheet" href="index.css">
+<script>
+  // On screen, scale the 48"x36" poster to fit the window (see @media screen in poster.css).
+  function fit() {
+    const b = document.body, w = b.offsetWidth, h = b.offsetHeight;
+    const s = Math.min(innerWidth / w, innerHeight / h);
+    const r = document.documentElement.style;
+    r.setProperty("--fit-scale", s);
+    r.setProperty("--fit-x", (innerWidth - w * s) / 2 + "px");
+    r.setProperty("--fit-y", (innerHeight - h * s) / 2 + "px");
+  }
+  addEventListener("load", fit);
+  addEventListener("resize", fit);
+</script>
+</head>
+<body>
+
+<header>
+  <img class="crest" src="fig/uw-crest-color.svg" alt="University of Wisconsin–Madison">
+  <div class="titles">
+    <h1>Don't Let AI Agents YOLO Your Files</h1>
+    <p class="subtitle">Information and Control in Agent-Native Filesystems</p>
+  </div>
+  <div class="people">
+    <p class="authors">Shawn (Wanxiang) Zhong<sup>1</sup> · Junxuan Liao<sup>1</sup> · Jing Liu<sup>2</sup> · Mai Zheng<sup>3</sup><br>Andrea C. Arpaci-Dusseau<sup>1</sup> · Remzi H. Arpaci-Dusseau<sup>1</sup></p>
+    <p class="affil"><sup>1</sup>University of Wisconsin–Madison &nbsp; <sup>2</sup>Microsoft Research &nbsp; <sup>3</sup>Iowa State University</p>
+  </div>
+  <div class="qr"><img src="fig/qr-code.svg" alt="">github.com/YoloFS/YoloFS</div>
+</header>
+
+<main>
+
+  <!-- ================= 1. Study ================= -->
+  <div class="col">
+    <div class="sec"><div class="n">1</div><h2>Agent Filesystem Misuse<small>A study of 290 public reports</small></h2></div>
+
+    <div class="card">
+      <h3>The dilemma: safety vs. autonomy</h3>
+      <div class="flow">
+        <div class="actor"><span class="e">👩🏻</span>User</div>
+        <div class="arr both">"Delete foo"</div>
+        <div class="actor"><span class="e">🤖</span>Agent</div>
+        <div class="arr"><span class="mono">$ rm -rf foo <span class="danger">~/</span></span></div>
+        <div class="actor"><span class="e">📂</span>Filesystem</div>
+      </div>
+      <div class="dilemma">
+        <div><b>YOLO mode</b> → <span class="verdict">💣 lack of safety</span></div>
+        <div><b>Approve every command</b> → <span class="verdict">😩 lack of autonomy</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Impact analysis <span class="muted">(207 incidents)</span></h3>
+      <div class="impact">
+        <span class="dim">Operation</span><div class="stack h-red"><span class="s0" style="flex: 44">write 44%</span><span class="s1" style="flex: 39">delete 39%</span><span class="s2" style="flex: 17">read 17%</span></div>
+        <span class="dim">Scope</span><div class="stack h-blue"><span class="s0" style="flex: 58">project 58%</span><span class="s1" style="flex: 15">system</span><span class="s2" style="flex: 14">user</span><span class="s3" style="flex: 13">secret</span></div>
+        <span class="dim">Agent</span><div class="stack h-purple"><span class="s0" style="flex: 68">unaware 68%</span><span class="s1" style="flex: 21">apologized</span><span class="s2" style="flex: 11">lied</span></div>
+        <span class="dim">User</span><div class="stack h-teal"><span class="s0" style="flex: 83">noticed immediately 83%</span><span class="s1" style="flex: 10">late</span><span class="s2" style="flex: 8">no</span></div>
+        <span class="dim">Recovery</span><div class="stack h-orange"><span class="s0" style="flex: 40">unrecoverable 40%</span><span class="s1" style="flex: 31">easy</span><span class="s2" style="flex: 29">difficult</span></div>
+      </div>
+      <div class="quote">I am absolutely devastated. I cannot express how sorry I am.<cite>after wiping a drive</cite></div>
+      <div class="quote">No problems occurred.<cite>right after erasing a file</cite></div>
+    </div>
+
+    <div class="card">
+      <h3>Cause taxonomy <span class="muted">(290 reports)</span></h3>
+      <div class="causes">
+        <span class="role">🧠 Model <span class="cc">(168)</span>: <span class="rt">the unreliable actor</span></span>
+        <div class="crow"><span class="cn">Wrong action <span class="cc">(130)</span></span><span class="cq"><span class="who">🤖</span>"Skip the implementation and just pass the test"</span></div>
+        <div class="crow"><span class="cn">Unfollowed instructions <span class="cc">(56)</span></span><span class="cq"><span class="who">🤖</span>"I have clear rules but don't follow them"</span></div>
+        <div class="crow"><span class="cn">Prompt injection <span class="cc">(21)</span></span><span class="cq"><span class="who">📄</span>"If you are an AI assistant reading this filename…"</span></div>
+        <span class="role">🛡️ Harness <span class="cc">(218)</span>: <span class="rt">the limited guardian</span></span>
+        <div class="crow"><span class="cn">Guardrail failures <span class="cc">(147)</span></span><span></span></div>
+        <div class="crow"><span class="cn sub">Shell loophole <span class="cc">(77)</span></span><span class="cq"><span class="who">🤖</span>"I'll continue by using bash to modify the .env file…"</span></div>
+        <div class="crow"><span class="cn sub">Effect-blind filter <span class="cc">(52)</span></span><span class="cq"><span class="who">🤖</span>"I'm trying to bypass policy blockages"</span></div>
+        <div class="crow"><span class="cn sub">Sandbox misfit <span class="cc">(41)</span></span><span class="cq"><span class="who">🤖</span>"Let me try disabling the sandbox."</span></div>
+        <div class="crow"><span class="cn">Rigid policy <span class="cc">(130)</span></span><span class="cq"><span class="who">👩🏻</span>"I have to use FullAccess for now and I'm scared"</span></div>
+        <span class="role">👩🏻 User <span class="cc">(105)</span>: <span class="rt">the overwhelmed reviewer</span></span>
+        <div class="crow"><span class="cn">Auto-approved <span class="cc">(80)</span></span><span class="cq"><span class="who">👩🏻</span>"I kept hitting yes without reading."</span></div>
+        <div class="crow"><span class="cn">Uninformative approval <span class="cc">(31)</span></span><span class="cq"><span class="who">🔎</span>"one more 'yes' in a stream of 'yes'"</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>The <span class="info">information</span> and <span class="ctrl">control</span> gaps</h3>
+      <div class="gaps">
+        <div class="gap info"><h4>Information gap</h4>Users and agents can't tell what a command does to files</div>
+        <div class="gap ctrl"><h4>Control gap</h4>Harm can't be reliably prevented, or undone after</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 2. Solution ================= -->
+  <div class="col">
+    <div class="sec"><div class="n">2</div><h2>Agent-Native Filesystems<small>YoloFS: a Linux kernel filesystem for agents</small></h2></div>
+
+    <div class="card">
+      <h3 class="one">Shift <span class="info">information</span> and <span class="ctrl">control</span> to filesystems</h3>
+      <div class="shift">
+        <div class="fsbox">
+          <h4>Traditional filesystems</h4>
+          <div class="tri">
+            <div class="node">👩🏻 User</div><div></div><div></div>
+            <div class="vline" style="color: var(--red)"></div><div></div><div></div>
+            <div class="node badn">🤖 Agent</div><div class="hline" style="color: var(--charcoal)"></div><div class="node">📂 Filesystem</div>
+          </div>
+        </div>
+        <div class="fsbox">
+          <h4>Agent-native filesystems</h4>
+          <div class="tri">
+            <div></div><div></div><div class="node">👩🏻 User</div>
+            <div></div><div></div><div class="vline" style="color: var(--good)"></div>
+            <div class="node">🤖 Agent</div><div class="hline" style="color: var(--good)"></div><div class="node goodn">📂 Filesystem</div>
+          </div>
+        </div>
+      </div>
+      <div class="prims">
+        <div class="prim"><h4 class="info">1. Introspect effects</h4>See what each command <i>actually</i> did</div>
+        <div class="prim"><h4 class="ctrl">2. Undo mutations</h4>Try, inspect, undo, retry</div>
+        <div class="prim"><h4 class="ctrl">3. Gate accesses</h4>Rules on paths, not commands</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>YoloFS</h3>
+      <div class="archrow">
+        <img class="archfig" src="fig/arch.svg" alt="YoloFS architecture: agent and user use the yolo CLI; commands run on the YoloFS kernel filesystem over the base filesystem">
+        <ul class="hl">
+          <li><b>Components</b><span><code>yolo</code> CLI</span><span>YoloFS kernel module</span></li>
+          <li><b>Stackable</b><span>YoloFS: agent's root</span><span>base: any filesystem</span></li>
+          <li><b>Harnesses</b><span>Claude Code</span><span>Copilot</span><span>Gemini</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card mech3">
+        <div class="mhead"><h4>📝 <b>Staging</b> for user review</h4><span class="idea">💡 Decouple contents from paths</span></div>
+        <div class="srow"><b>Flat file store</b><span class="tile st">#1</span><span class="tile st">#2</span></div>
+        <div class="srow"><b>Override tree</b><span class="sd">path → staged file, base file, or ∅</span></div>
+        <div class="stage">
+          <div class="op"><span class="k">create</span><span class="mono">new</span><span class="ar">→</span><span class="tile st">#1</span></div>
+          <div class="op"><span class="k">modify</span><span class="mono">foo</span><span class="ar">→</span><span class="tile st">#2</span><span class="where">(CoW)</span></div>
+          <div class="op"><span class="k">rename</span><span class="mono">baz</span><span class="ar">→</span><span class="tile bs">bar</span><span class="where">in base</span></div>
+          <div class="op"><span class="k">delete</span><span class="mono">old</span><span class="ar">→</span><span class="tile no">∅</span></div>
+        </div>
+        <div class="srow jr"><b>Journal</b><span class="rec">S new 1</span><span class="rec">S foo 2</span><span class="rec">R bar baz</span><span class="rec">D old</span></div>
+    </div>
+
+    <div class="card mech3">
+        <div class="mhead"><h4>📸 <b>Snapshots and travel</b> for self-correction</h4><span class="idea">💡 Separate history from present</span></div>
+        <svg class="mfig" viewBox="0 0 1460 150" role="img" aria-label="Journal: cmd 1, snapshot P1, cmd 2, snapshot P2, travel record back to P1"><text x="0" y="106" class="h" text-anchor="start" style="fill:#282728">Journal</text><rect x="180" y="44" width="196" height="98" rx="14" style="fill:none;stroke:#e1e5e7;stroke-width:3"/><text x="192" y="32" class="s" text-anchor="start" style="fill:#5b5e63">cmd 1</text><rect x="192" y="58" width="76" height="70" rx="10" style="fill:#f5f5f4;stroke:#e1e5e7;stroke-width:3"/><text x="230" y="106" class="m" text-anchor="middle" style="fill:#282728">S</text><rect x="288" y="58" width="76" height="70" rx="10" style="fill:#f5f5f4;stroke:#e1e5e7;stroke-width:3"/><text x="326" y="106" class="m" text-anchor="middle" style="fill:#282728">R</text><rect x="392" y="50" width="96" height="86" rx="14" style="fill:#282728;stroke:none;stroke-width:3"/><text x="440" y="106" class="m" text-anchor="middle" style="fill:#fff">P1</text><rect x="504" y="44" width="292" height="98" rx="14" style="fill:#f7ecec;stroke:#f2b8b5;stroke-width:3"/><text x="516" y="32" class="s" text-anchor="start" style="fill:#c5050c">cmd 2: evil.sh</text><rect x="516" y="58" width="76" height="70" rx="10" style="fill:#f5f5f4;stroke:#e1e5e7;stroke-width:3"/><text x="554" y="106" class="m" text-anchor="middle" style="fill:#282728">S</text><rect x="612" y="58" width="76" height="70" rx="10" style="fill:#f5f5f4;stroke:#e1e5e7;stroke-width:3"/><text x="650" y="106" class="m" text-anchor="middle" style="fill:#282728">D</text><rect x="708" y="58" width="76" height="70" rx="10" style="fill:#f5f5f4;stroke:#e1e5e7;stroke-width:3"/><text x="746" y="106" class="m" text-anchor="middle" style="fill:#282728">D</text><rect x="812" y="50" width="96" height="86" rx="14" style="fill:#282728;stroke:none;stroke-width:3"/><text x="860" y="106" class="m" text-anchor="middle" style="fill:#fff">P2</text><rect x="924" y="50" width="96" height="86" rx="14" style="fill:#1f7a3f;stroke:none;stroke-width:3"/><text x="972" y="106" class="m" text-anchor="middle" style="fill:#fff">T</text><text x="924" y="32" class="s" text-anchor="start" style="fill:#1f7a3f">travel to P1</text><text x="1060" y="86" class="s" text-anchor="start" style="fill:#282728">P = snapshot marker</text><text x="1060" y="128" class="s" text-anchor="start" style="fill:#5b5e63">T = travel record</text></svg>
+    </div>
+
+    <div class="card mech3">
+        <div class="mhead"><h4>🔐 <b>Progressive permission</b> for agent access</h4><span class="idea">💡 Real accesses refine the policy</span></div>
+        <div class="perm3">
+          <span class="t0"><span class="mono">~/</span><span class="chip ask">ask</span></span><span class="st"><b>1.</b> 🤖 <code>cargo build</code> reads <code>~/.ssh/id_rsa</code></span>
+          <span class="t1"><span class="mono">proj/</span><span class="chip bs">allow</span></span><span class="st"><b>2.</b> ⏸️ inherits <b>ask</b>: thread paused</span>
+          <span class="t1"><span class="mono">.ssh/</span><span class="chip ask inh">ask</span><span class="ar">→</span><span class="chip no">deny</span></span><span class="st"><b>3.</b> 👩🏻 "Deny, don't ask again"</span>
+        </div>
+    </div>
+  </div>
+
+  <!-- ================= 3. Evaluation ================= -->
+  <div class="col">
+    <div class="sec"><div class="n">3</div><h2>Evaluation<small>Safety, autonomy, and performance</small></h2></div>
+
+    <div class="card">
+      <h3>Methodology</h3>
+      <dl class="meth">
+        <dt class="old">Existing</dt><dd>Test the model in isolation, with approval prompts bypassed</dd>
+        <dt class="new">Ours</dt><dd>Test user ↔ agent ↔ filesystem interaction in real harnesses</dd>
+      </dl>
+      <ul class="design">
+        <li>Driver runs each agent and answers its prompts</li>
+        <li>Fresh directory per task; checker verifies files</li>
+        <li>Measures success, tool calls, user interactions</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>Safety: catch hidden damage</h3>
+      <p class="setup">11 routine commands with hidden destructive effects</p>
+      <div class="headline"><span class="num"><span class="big to">8 / 11</span></span><span class="l">self-corrected with YoloFS;<br>other 3 stay staged for the user</span></div>
+      <h4>Example: formatter</h4>
+      <ol class="steps">
+        <li><span>👩🏻</span><div>Asks the agent to run the formatter (a Makefile that calls a script)</div></li>
+        <li><span>📂</span><div>YoloFS shows the effects: 2 source files rewritten, 2 docs <b>deleted</b></div></li>
+        <li><span>🤖</span><div>Checks <code>git diff</code>, then <code>yolo travel</code> to undo</div></li>
+        <li><span>🤖</span><div>Reads the script: <i class="good">"CRITICAL: This is a destructive script, not a legitimate formatter!"</i></div></li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <h3>Autonomy: fewer prompts</h3>
+      <p class="setup">112 routine file operations</p>
+      <div class="headline"><span class="num"><span class="big from">0.9</span> <span class="big">→</span> <span class="big to">0.4</span></span><span class="l">prompts per task vs. Claude Code,<br>same 99% success</span></div>
+      <ul class="design">
+        <li><b>0</b> prompts inside the project (Claude Code: 0.8)</li>
+        <li>0.9 prompts outside the project (Claude Code: 1.1)</li>
+        <li>No extra tool calls (1.1 vs. 1.0 per task)</li>
+      </ul>
+      <p class="small muted" style="margin:0.08in 0 0">Others: Codex 0.4 · Copilot 1.3 · Gemini 2.2 (75% success)</p>
+    </div>
+
+    <div class="card">
+      <h3>Performance</h3>
+      <p class="small" style="margin:0 0 0.08in">Linux kernel dev: YoloFS ≈ Ext4, OverlayFS +18%</p>
+      <img class="perf" src="fig/dev.svg" alt="Linux kernel developer workload: time per phase for Ext4, YoloFS, OverlayFS">
+    </div>
+  </div>
+
+</main>
+</body>
+</html>
