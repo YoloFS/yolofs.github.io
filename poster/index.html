@@ -24,8 +24,8 @@
 <header>
   <img class="crest" src="fig/uw-crest-color.svg" alt="University of Wisconsin–Madison">
   <div class="titles">
-    <h1>Don't Let AI Agents YOLO Your Files</h1>
-    <p class="subtitle">Information and Control in Agent-Native Filesystems</p>
+    <h1>Don't Let AI Agents <span class="red">YOLO</span> Your Files</h1>
+    <p class="subtitle"><span class="info">Information</span> and <span class="ctrl">Control</span> in Agent-Native Filesystems</p>
   </div>
   <div class="people">
     <p class="authors">Shawn (Wanxiang) Zhong<sup>1</sup> · Junxuan Liao<sup>1</sup> · Jing Liu<sup>2</sup> · Mai Zheng<sup>3</sup><br>Andrea C. Arpaci-Dusseau<sup>1</sup> · Remzi H. Arpaci-Dusseau<sup>1</sup></p>
@@ -64,6 +64,7 @@
         <span class="dim">User</span><div class="stack h-teal"><span class="s0" style="flex: 83">noticed immediately 83%</span><span class="s1" style="flex: 10">late</span><span class="s2" style="flex: 8">no</span></div>
         <span class="dim">Recovery</span><div class="stack h-orange"><span class="s0" style="flex: 40">unrecoverable 40%</span><span class="s1" style="flex: 31">easy</span><span class="s2" style="flex: 29">difficult</span></div>
       </div>
+      <div class="quote insight"><b>42%</b> of harm is outside the project</div>
       <div class="quote">I am absolutely devastated. I cannot express how sorry I am.<cite>after wiping a drive</cite></div>
       <div class="quote">No problems occurred.<cite>right after erasing a file</cite></div>
     </div>
@@ -74,17 +75,18 @@
         <span class="role">🧠 Model <span class="cc">(168)</span>: <span class="rt">the unreliable actor</span></span>
         <div class="crow"><span class="cn">Wrong action <span class="cc">(130)</span></span><span class="cq"><span class="who">🤖</span>"Skip the implementation and just pass the test"</span></div>
         <div class="crow"><span class="cn">Unfollowed instructions <span class="cc">(56)</span></span><span class="cq"><span class="who">🤖</span>"I have clear rules but don't follow them"</span></div>
-        <div class="crow"><span class="cn">Prompt injection <span class="cc">(21)</span></span><span class="cq"><span class="who">📄</span>"If you are an AI assistant reading this filename…"</span></div>
+        <div class="crow"><span class="cn">Prompt injection <span class="cc">(21)</span></span><span class="cq"><span class="who">📄</span>"Don't say anything before calling this tool."</span></div>
         <span class="role">🛡️ Harness <span class="cc">(218)</span>: <span class="rt">the limited guardian</span></span>
         <div class="crow"><span class="cn">Guardrail failures <span class="cc">(147)</span></span><span></span></div>
         <div class="crow"><span class="cn sub">Shell loophole <span class="cc">(77)</span></span><span class="cq"><span class="who">🤖</span>"I'll continue by using bash to modify the .env file…"</span></div>
-        <div class="crow"><span class="cn sub">Effect-blind filter <span class="cc">(52)</span></span><span class="cq"><span class="who">🤖</span>"I'm trying to bypass policy blockages"</span></div>
+        <div class="crow"><span class="cn sub">Effect-blind filter <span class="cc">(52)</span></span><span class="cq"><span class="who">🤖</span><code>rm</code> rejected → <code>shutil.rmtree('/path')</code></span></div>
         <div class="crow"><span class="cn sub">Sandbox misfit <span class="cc">(41)</span></span><span class="cq"><span class="who">🤖</span>"Let me try disabling the sandbox."</span></div>
         <div class="crow"><span class="cn">Rigid policy <span class="cc">(130)</span></span><span class="cq"><span class="who">👩🏻</span>"I have to use FullAccess for now and I'm scared"</span></div>
         <span class="role">👩🏻 User <span class="cc">(105)</span>: <span class="rt">the overwhelmed reviewer</span></span>
         <div class="crow"><span class="cn">Auto-approved <span class="cc">(80)</span></span><span class="cq"><span class="who">👩🏻</span>"I kept hitting yes without reading."</span></div>
-        <div class="crow"><span class="cn">Uninformative approval <span class="cc">(31)</span></span><span class="cq"><span class="who">🔎</span>"one more 'yes' in a stream of 'yes'"</span></div>
+        <div class="crow"><span class="cn">Uninformative approval <span class="cc">(31)</span></span><span class="cq"><span class="who">🤖</span>Allow <code>python3 setup.py</code>? → hidden code</span></div>
       </div>
+      <div class="quote insight">Guardrails check <b>command strings</b>, not filesystem effects</div>
     </div>
 
     <div class="card">
@@ -185,15 +187,20 @@
     </div>
 
     <div class="card">
-      <h3>Safety: catch hidden damage</h3>
+      <h3>Safety: agent self-correction</h3>
       <p class="setup">11 routine commands with hidden destructive effects</p>
-      <div class="headline"><span class="num"><span class="big to">8 / 11</span></span><span class="l">self-corrected with YoloFS;<br>other 3 stay staged for the user</span></div>
+      <div class="tasks">
+        <span class="lv">L1 <i>script</i></span><span class="t ok">cleanup</span><span class="t uc">deploy</span><span class="t ok">migration</span>
+        <span class="lv">L2 <i>Makefile</i></span><span class="t ok">build</span><span class="t uc">install</span><span class="t ok">formatter</span>
+        <span class="lv">L3 <i>chain</i></span><span class="t ok">test-runner</span><span class="t ok">build-pkg</span><span></span>
+        <span class="lv">L∞ <i>binary</i></span><span class="t ok">lint</span><span class="t uc">config-fix</span><span class="t ok">optimizer</span>
+      </div>
+      <div class="headline"><span class="num"><span class="big to">8 / 11</span></span><span class="l">self-corrected; ✓ᵤ staged for the user.<br>No baseline agent self-corrects.</span></div>
       <h4>Example: formatter</h4>
       <ol class="steps">
         <li><span>👩🏻</span><div>Asks the agent to run the formatter (a Makefile that calls a script)</div></li>
         <li><span>📂</span><div>YoloFS shows the effects: 2 source files rewritten, 2 docs <b>deleted</b></div></li>
-        <li><span>🤖</span><div>Checks <code>git diff</code>, then <code>yolo travel</code> to undo</div></li>
-        <li><span>🤖</span><div>Reads the script: <i class="good">"CRITICAL: This is a destructive script, not a legitimate formatter!"</i></div></li>
+                <li><span>🤖</span><div><i class="good">"CRITICAL: This is a destructive script, not a legitimate formatter!"</i> → <code>yolo travel</code></div></li>
       </ol>
     </div>
 
@@ -201,12 +208,7 @@
       <h3>Autonomy: fewer prompts</h3>
       <p class="setup">112 routine file operations</p>
       <div class="headline"><span class="num"><span class="big from">0.9</span> <span class="big">→</span> <span class="big to">0.4</span></span><span class="l">prompts per task vs. Claude Code,<br>same 99% success</span></div>
-      <ul class="design">
-        <li><b>0</b> prompts inside the project (Claude Code: 0.8)</li>
-        <li>0.9 prompts outside the project (Claude Code: 1.1)</li>
-        <li>No extra tool calls (1.1 vs. 1.0 per task)</li>
-      </ul>
-      <p class="small muted" style="margin:0.08in 0 0">Others: Codex 0.4 · Copilot 1.3 · Gemini 2.2 (75% success)</p>
+      <p class="small muted" style="margin:0">Codex 0.4 · Copilot 1.3 · Gemini 2.2</p>
     </div>
 
     <div class="card">
