@@ -43,3 +43,33 @@ figure { margin: 20px 0; }
 figure img { display: block; width: 100%; margin: 0 auto; }
 figure img.narrow { max-width: 560px; }
 figcaption { margin-top: 8px; font-size: 14px; color: var(--muted); text-align: center; }
+
+/* ---------- a few accents ---------- */
+:root { --red: #c5050c; --info: #1d5fb4; --ctrl: #b85c00; --good: #1f7a3f; --soft: #f6f6f5; }
+@media (prefers-color-scheme: dark) {
+  :root { --red: #ff6b6b; --info: #7fb0ff; --ctrl: #ffb366; --good: #6fcf8f; --soft: #1c1c1c; }
+}
+body { border-top: 6px solid var(--red); }
+.red { color: var(--red); }
+.info { color: var(--info); }
+.ctrl { color: var(--ctrl); }
+.good { color: var(--good); }
+.muted { color: var(--muted); }
+
+nav a { border: 1px solid var(--line); border-radius: 6px; padding: 4px 14px; }
+nav a:hover { border-color: var(--link); text-decoration: none; }
+
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 24px 0 0; }
+.stats div { background: var(--soft); border-radius: 8px; padding: 12px 14px; }
+.stats b { display: block; font-size: 24px; line-height: 1.2; color: var(--red); }
+.stats span { font-size: 14px; color: var(--muted); line-height: 1.35; display: block; margin-top: 4px; }
+@media (max-width: 640px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+
+blockquote { margin: 0 0 12px; padding: 8px 14px; border-left: 3px solid var(--red); background: var(--soft); font-style: italic; }
+blockquote.good { border-left-color: var(--good); }
+blockquote cite { display: block; font-style: normal; font-size: 14px; color: var(--muted); margin-top: 2px; }
+blockquote cite::before { content: "— "; }
+
+.idea { margin: -2px 0 10px; font-size: 15px; color: var(--muted); }
+.big { font-size: 19px; margin: 6px 0 10px; }
+.big b { font-size: 28px; }

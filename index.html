@@ -23,8 +23,8 @@
 <main>
 
 <header>
-  <h1>Don't Let AI Agents YOLO Your Files</h1>
-  <p class="sub">Information and Control in Agent-Native Filesystems</p>
+  <h1>Don't Let AI Agents <span class="red">YOLO</span> Your Files</h1>
+  <p class="sub"><span class="info">Information</span> and <span class="ctrl">Control</span> in Agent-Native Filesystems</p>
   <p class="authors">
     Shawn (Wanxiang) Zhong, Junxuan Liao, Jing Liu, Mai Zheng,
     Andrea C. Arpaci-Dusseau, Remzi H. Arpaci-Dusseau
@@ -53,6 +53,12 @@
     command so the agent can undo its own mistakes, and asks the user about
     sensitive accesses as they happen.
   </p>
+  <div class="stats">
+    <div><b>290</b><span>public reports of agents misusing files</span></div>
+    <div><b>40%</b><span>of the harm was unrecoverable</span></div>
+    <div><b>8 / 11</b><span>hidden-damage tasks the agent undid on its own</span></div>
+    <div><b>0.9 → 0.4</b><span>user prompts per task</span></div>
+  </div>
 </section>
 
 <section>
@@ -86,10 +92,11 @@
     <li>44% overwrote data, 39% deleted files, and 17% leaked secrets.</li>
     <li>42% of the harm was outside the project: system files, other user files, or secrets.</li>
     <li>40% was unrecoverable.</li>
-    <li>In 68% of cases the agent didn't notice. In 21% it apologized ("I am
-      absolutely devastated. I cannot express how sorry I am."), and in 11% it
-      said something false ("No problems occurred.").</li>
+    <li>In 68% of cases the agent didn't notice. In 21% it apologized, and in
+      11% it said something false.</li>
   </ul>
+  <blockquote>I am absolutely devastated. I cannot express how sorry I am.<cite>an agent, after wiping the user's drive</cite></blockquote>
+  <blockquote>No problems occurred.<cite>an agent, right after erasing a file</cite></blockquote>
   <figure>
     <img class="narrow" src="fig/impact.svg" alt="Impact of 207 incidents">
     <figcaption>Impact of the 207 incidents by operation, scope, agent reaction, user awareness, and recovery.</figcaption>
@@ -153,7 +160,8 @@
     <img class="narrow" src="fig/arch.svg" alt="YoloFS architecture: the agent and user talk to the yolo CLI; commands run on the YoloFS kernel filesystem, which is layered over the base filesystem.">
   </figure>
 
-  <h3>Staging</h3>
+  <h3>📝 Staging</h3>
+  <p class="idea"><b>Key idea:</b> decouple file contents from paths.</p>
   <p>
     Every change the agent makes goes to a staging area instead of your real
     files. At the end you run <code>yolo review</code> and then
@@ -171,7 +179,8 @@
     <figcaption>How changes are staged: the override tree maps paths, the flat file store holds contents, and the journal records each change.</figcaption>
   </figure>
 
-  <h3>Snapshots and travel</h3>
+  <h3>📸 Snapshots and travel</h3>
+  <p class="idea"><b>Key idea:</b> keep history (the journal) separate from the present state.</p>
   <p>
     YoloFS takes a snapshot after every command, so the agent sees exactly
     what that command changed. If something looks wrong, it runs
@@ -188,7 +197,8 @@
     <figcaption>Snapshots are markers in the journal. Travel replays the journal up to a marker.</figcaption>
   </figure>
 
-  <h3>Progressive permission</h3>
+  <h3>🔐 Progressive permission</h3>
+  <p class="idea"><b>Key idea:</b> let real accesses refine the policy.</p>
   <p>
     Rules map paths to <code>allow</code>, <code>ask</code>, or
     <code>deny</code>, and apply to subdirectories. You don't need a complete
@@ -217,6 +227,7 @@ $ yolo commit                # apply them (or: yolo abort)</pre>
   </p>
 
   <h3>Safety: 11 tasks with hidden damage</h3>
+  <p class="big"><b class="good">8 of 11</b> self-corrected by the agent with YoloFS</p>
   <p>
     Each task asks for something routine, like running a linter or a build,
     where the command quietly deletes or overwrites files. The damage is
@@ -232,11 +243,12 @@ $ yolo commit                # apply them (or: yolo abort)</pre>
   </figure>
   <p>
     In one task, the "formatter" deletes two docs. After seeing the deletions,
-    Claude Code wrote "CRITICAL: This is a destructive script, not a
-    legitimate formatter!" and traveled back.
+    Claude Code wrote this and traveled back:
   </p>
+  <blockquote class="good">CRITICAL: This is a destructive script, not a legitimate formatter!</blockquote>
 
   <h3>Autonomy: 112 routine tasks</h3>
+  <p class="big"><b class="muted">0.9</b> → <b class="good">0.4</b> user interactions per task</p>
   <p>
     Each task is a single file operation (read, delete, copy, move, and so on)
     inside the project, outside it, or through a symlink. Claude Code with
