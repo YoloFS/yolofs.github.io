@@ -209,7 +209,7 @@ main {
 .srow .sd { color: var(--muted); font-size: var(--t-small); }
 .stage { display: grid; grid-template-columns: 1fr 1fr; gap: 0.16in 0.4in; padding-left: 0.4in; margin: 0.04in 0 0.3in; }
 .op { display: flex; align-items: center; gap: 0.14in; white-space: nowrap; }
-.op .k { min-width: 1.6in; color: var(--muted); font-weight: 700; }
+.op .k { min-width: 1.6in; }
 .op .mono { font-weight: 600; min-width: 0.7in; }
 .op .tile { font-size: var(--t-body); }
 .op .ar, .perm3 .ar { color: var(--muted); font-weight: 800; }
@@ -248,7 +248,7 @@ main {
 .steps li { display: grid; grid-template-columns: 0.6in 1fr; gap: 0.12in; align-items: start; margin-bottom: 0.14in; }
 .steps li > span { font-size: 36pt; line-height: 1.1; }
 
-img.perf { width: 100%; max-height: 6.4in; object-fit: contain; margin: 0.08in 0; }
+img.perf { width: 100%; max-height: 9in; object-fit: contain; margin: 0.08in 0; }
 .causes .cn { white-space: nowrap; }
 .quote.insight { font-style: normal; }
 .quote.insight::before { content: "💡"; }
@@ -292,3 +292,6 @@ img.perf { width: 100%; max-height: 6.4in; object-fit: contain; margin: 0.08in 0
 .p-us { background: var(--good); }
 .p-base { background: #a4a7ae; }
 .pchart .sr { font-size: var(--t-small); color: var(--muted); text-align: right; }
+.mhead h3 { font-size: var(--t-h4); }
+.stage, .op, .srow, .perm3 { font-size: var(--t-body); }
+.op .tile, .srow .rec, .srow .tile { font-size: var(--t-small); }

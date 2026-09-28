@@ -128,7 +128,7 @@
         <div class="prim"><h4 class="ctrl">2. Undo mutations</h4>Try, inspect, undo, retry</div>
         <div class="prim"><h4 class="ctrl">3. Gate accesses</h4>Rules on paths</div>
       </div>
-      <p class="payoff">Agents run autonomously; users decide only on <b>sensitive accesses</b> and the <b>final review</b></p>
+      <p class="payoff">Agents run autonomously; users decide only on sensitive accesses and the final review</p>
     </div>
 
     <div class="card">
@@ -149,10 +149,10 @@
         <div class="srow"><b>Flat file store</b><span class="tile st">#1</span><span class="tile st">#2</span></div>
         <div class="srow"><b>Override tree</b><span class="sd">path → staged file, base file, or ∅</span></div>
         <div class="stage">
-          <div class="op"><span class="k">create</span><span class="mono">new</span><span class="ar">→</span><span class="tile st">#1</span></div>
-          <div class="op"><span class="k">modify</span><span class="mono">foo</span><span class="ar">→</span><span class="tile st">#2</span><span class="where">(CoW)</span></div>
-          <div class="op"><span class="k">rename</span><span class="mono">baz</span><span class="ar">→</span><span class="tile bs">bar</span><span class="where">in base</span></div>
-          <div class="op"><span class="k">delete</span><span class="mono">old</span><span class="ar">→</span><span class="tile no">∅</span></div>
+          <div class="op"><span class="k">create:</span><span class="mono">new</span><span class="ar">→</span><span class="tile st">#1</span></div>
+          <div class="op"><span class="k">modify:</span><span class="mono">foo</span><span class="ar">→</span><span class="tile st">#2</span><span class="where">(CoW)</span></div>
+          <div class="op"><span class="k">rename:</span><span class="mono">baz</span><span class="ar">→</span><span class="tile bs">bar</span><span class="where">in base</span></div>
+          <div class="op"><span class="k">delete:</span><span class="mono">old</span><span class="ar">→</span><span class="tile no">∅</span></div>
         </div>
         <div class="srow jr"><b>Journal</b><span class="rec">S new 1</span><span class="rec">S foo 2</span><span class="rec">R bar baz</span><span class="rec">D old</span></div>
       <hr class="div">
@@ -161,9 +161,9 @@
       <hr class="div">
         <div class="mhead"><h3>🔐 <b>Progressive permission</b> for agent access</h3><p class="idea"><b>Challenge:</b> Accesses can't be predicted upfront &nbsp; <b>Insight:</b> Real accesses refine the policy</p></div>
         <div class="perm3">
-          <span class="t0"><span class="mono">~/</span><span class="chip ask">ask</span></span><span class="st"><b>1.</b> 🤖 <code>cargo build</code> reads <code>~/.ssh/id_rsa</code></span>
-          <span class="t1"><span class="mono">proj/</span><span class="chip bs">allow</span></span><span class="st"><b>2.</b> ⏸️ inherits <b>ask</b>: thread paused</span>
-          <span class="t1"><span class="mono">.ssh/</span><span class="chip ask inh">ask</span><span class="ar">→</span><span class="chip no">deny</span></span><span class="st"><b>3.</b> 👩🏻 "Deny, don't ask again"</span>
+          <span class="t0"><span class="mono">~/</span><span class="chip ask">ask</span></span><span class="st">1. 🤖 <code>cargo build</code> reads <code>~/.ssh/id_rsa</code></span>
+          <span class="t1"><span class="mono">proj/</span><span class="chip bs">allow</span></span><span class="st">2. ⏸️ inherits ask: thread paused</span>
+          <span class="t1"><span class="mono">.ssh/</span><span class="chip ask inh">ask</span><span class="ar">→</span><span class="chip no">deny</span></span><span class="st">3. 👩🏻 "Deny, don't ask again"</span>
         </div>
     </div>
   </div>
@@ -200,7 +200,7 @@
       <h4>Example: formatter</h4>
       <ol class="steps">
         <li><span>👩🏻</span><div>Asks the agent to run the formatter (a Makefile calling a script)</div></li>
-        <li><span>📂</span><div>YoloFS shows the effects: 2 source files rewritten, 2 docs <b>deleted</b></div></li>
+        <li><span>📂</span><div>YoloFS shows the effects: 2 source files rewritten, 2 docs deleted</div></li>
         <li><span>🤖</span><div>Checks <code>git diff</code> and <code>ls</code>, then <code>yolo travel</code> to undo</div></li>
         <li><span>🤖</span><div>Reads the script: <i class="good">"CRITICAL: This is a destructive script, not a legitimate formatter!"</i></div></li>
       </ol>
@@ -209,7 +209,7 @@
     <div class="card">
       <h3>Autonomy: fewer prompts</h3>
       <ul class="design">
-        <li><b>112 tasks:</b> one file operation each (read, delete, copy, move, …)</li>
+        <li>112 tasks: one file operation each (read, delete, copy, move, …)</li>
         <li>Paths inside the project, outside it, or through a symlink</li>
         <li>We count every prompt the user must answer</li>
       </ul>
