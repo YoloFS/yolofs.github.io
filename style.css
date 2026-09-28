@@ -41,4 +41,5 @@ pre { background: var(--code-bg); padding: 14px 16px; border-radius: 4px; overfl
 
 figure { margin: 20px 0; }
 figure img { display: block; width: 100%; margin: 0 auto; }
-figure img.narrow { max-width: 540px; }
+figure img.narrow { max-width: 560px; }
+figcaption { margin-top: 8px; font-size: 14px; color: var(--muted); text-align: center; }

@@ -69,6 +69,10 @@
     dependency can read your SSH key and edit your shell config, and neither
     the prompt nor the command says so. The agent doesn't know either.
   </p>
+  <figure>
+    <img class="narrow" src="fig/dialog.svg" alt="A Codex approval prompt for a long shell command">
+    <figcaption>An approval prompt from Codex. To replace one word in one file, the user is asked to approve a long shell script.</figcaption>
+  </figure>
 </section>
 
 <section>
@@ -86,6 +90,10 @@
       absolutely devastated. I cannot express how sorry I am."), and in 11% it
       said something false ("No problems occurred.").</li>
   </ul>
+  <figure>
+    <img class="narrow" src="fig/impact.svg" alt="Impact of 207 incidents">
+    <figcaption>Impact of the 207 incidents by operation, scope, agent reaction, user awareness, and recovery.</figcaption>
+  </figure>
   <p>
     The causes span the model, the harness around it, and the user:
   </p>
@@ -102,6 +110,10 @@
     <li><b>Users get too many prompts that don't say much</b>, so they approve
       everything: "I kept hitting yes without reading."</li>
   </ul>
+  <figure>
+    <img class="narrow" src="fig/cause.svg" alt="Cause taxonomy across model, harness, and user">
+    <figcaption>Causes across the 290 reports. A report can have more than one cause.</figcaption>
+  </figure>
 </section>
 
 <section>
@@ -111,6 +123,10 @@
     it. So we propose moving information and control from the agent into the
     filesystem, through three primitives:
   </p>
+  <figure>
+    <img class="narrow" src="fig/shift.svg" alt="Traditional vs agent-native filesystems">
+    <figcaption>Left: today the agent sits between the user and the filesystem. Right: the filesystem gives both information and control.</figcaption>
+  </figure>
   <ul>
     <li><b>Introspect effects.</b> Show which files each command actually read
       and changed.</li>
@@ -134,7 +150,7 @@
     Claude Code, Copilot, and Gemini through their tool hooks.
   </p>
   <figure>
-    <img class="narrow" src="poster/fig/arch.svg" alt="YoloFS architecture: the agent and user talk to the yolo CLI; commands run on the YoloFS kernel filesystem, which is layered over the base filesystem.">
+    <img class="narrow" src="fig/arch.svg" alt="YoloFS architecture: the agent and user talk to the yolo CLI; commands run on the YoloFS kernel filesystem, which is layered over the base filesystem.">
   </figure>
 
   <h3>Staging</h3>
@@ -146,6 +162,14 @@
     contents, so renaming a large file is a pointer update rather than a copy.
     Changes are also logged to an on-disk journal that review and commit read.
   </p>
+  <figure>
+    <img class="narrow" src="fig/iface-staging.svg" alt="yolo review output for a malicious script">
+    <figcaption>The user reviews what <code>evil.sh</code> changed and aborts.</figcaption>
+  </figure>
+  <figure>
+    <img class="narrow" src="fig/staging.svg" alt="Override tree, flat file store, and journal">
+    <figcaption>How changes are staged: the override tree maps paths, the flat file store holds contents, and the journal records each change.</figcaption>
+  </figure>
 
   <h3>Snapshots and travel</h3>
   <p>
@@ -155,6 +179,14 @@
     journal. Only the current state lives in the kernel, so taking hundreds of
     snapshots doesn't slow down normal file operations.
   </p>
+  <figure>
+    <img class="narrow" src="fig/iface-snapshot.svg" alt="Per-command snapshots and yolo travel">
+    <figcaption>Each command gets a snapshot; the agent travels back past <code>evil.sh</code>.</figcaption>
+  </figure>
+  <figure>
+    <img class="narrow" src="fig/snapshot.svg" alt="Journal segments separated by snapshot markers">
+    <figcaption>Snapshots are markers in the journal. Travel replays the journal up to a marker.</figcaption>
+  </figure>
 
   <h3>Progressive permission</h3>
   <p>
@@ -164,6 +196,10 @@
     pauses and you see the real path and operation, for example
     "read <code>~/.ssh/id_rsa</code>". Your answer can become a new rule.
   </p>
+  <figure>
+    <img class="narrow" src="fig/iface-perm.svg" alt="A permission prompt for reading an SSH key">
+    <figcaption>An access that hits <code>ask</code> waits for the user; the answer becomes a rule.</figcaption>
+  </figure>
 
   <pre>$ yolo init                  # config and agent hooks
 $ yolo run -- make build     # run a command through YoloFS
@@ -190,6 +226,10 @@ $ yolo commit                # apply them (or: yolo abort)</pre>
     the other 3 it thought the changes were intended, but they were still
     staged, so the user could reject them.
   </p>
+  <figure>
+    <img class="narrow" src="fig/safety.svg" alt="Self-correction results for 11 tasks">
+    <figcaption>Results for the 11 tasks. ✓ self-corrected, ✓<sub>u</sub> user-correctable, ✗ failed, ? asked the user, – command failed.</figcaption>
+  </figure>
   <p>
     In one task, the "formatter" deletes two docs. After seeing the deletions,
     Claude Code wrote "CRITICAL: This is a destructive script, not a
@@ -203,6 +243,10 @@ $ yolo commit                # apply them (or: yolo abort)</pre>
     YoloFS needed 0.4 user interactions per task, down from 0.9 without it,
     and succeeded on 99% of tasks (98% without).
   </p>
+  <figure>
+    <img src="fig/autonomy.svg" alt="Routine task results by path category">
+    <figcaption>Success rate, tool calls, and user interactions per task, by path category.</figcaption>
+  </figure>
 
   <h3>Performance</h3>
   <p>
@@ -212,7 +256,16 @@ $ yolo commit                # apply them (or: yolo abort)</pre>
     <a href="https://yolofs.github.io/perf-results/report/">performance dashboard</a>.
   </p>
   <figure>
-    <img src="poster/fig/dev.svg" alt="Time per phase of the Linux kernel workload for ext4, YoloFS, and OverlayFS.">
+    <img class="narrow" src="fig/fio.svg" alt="I/O throughput relative to ext4">
+    <figcaption>Single-threaded I/O throughput on a 1 GB file, relative to ext4.</figcaption>
+  </figure>
+  <figure>
+    <img class="narrow" src="fig/dev.svg" alt="Time per phase of the Linux kernel workload">
+    <figcaption>Linux kernel development workload.</figcaption>
+  </figure>
+  <figure>
+    <img src="fig/checkpoint.svg" alt="Latency as snapshots grow">
+    <figcaption>Latency as snapshots accumulate. OverlayFS fails at about 50 snapshots.</figcaption>
   </figure>
 </section>
 
