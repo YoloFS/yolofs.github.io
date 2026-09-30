@@ -3,4 +3,6 @@ exclude:
   - README.md
   - twitter/
   - xhs/
+  - linkedin/
+  - demo/demo.py
   - poster/Makefile
