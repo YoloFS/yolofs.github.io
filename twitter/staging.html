@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Staging and snapshots</title>
+<link rel="stylesheet" href="term.css">
+</head>
+<body>
+<!-- Simplified to show the idea: staging, per-command snapshots, and a permission prompt. -->
+<h1>Changes are staged. Secrets ask first. You decide.</h1>
+<div class="win">
+  <div class="bar"><i></i><i></i><i></i><span>your project on YoloFS</span></div>
+<pre><span class="dim">The agent runs:</span> npm install
+<span class="blue">YoloFS:</span> <span class="yellow">node wants to read ~/.ssh/id_rsa</span> Allow? [y/n] <b>n</b>
+<span class="blue">YoloFS:</span> snapshot 1 · node_modules/ added
+<span class="dim">The agent runs:</span> npm run build
+<span class="blue">YoloFS:</span> snapshot 2 · dist/app.js added
+
+<span class="dim">Your real files: untouched so far</span>
+
+<span class="dim">You run:</span> yolo review    <span class="dim"># see every change</span>
+<span class="dim">You run:</span> yolo commit    <span class="dim"># or: yolo abort</span>
+<span class="blue">YoloFS:</span> <span class="green">committed to your real files</span></pre>
+</div>
+</body>
+</html>

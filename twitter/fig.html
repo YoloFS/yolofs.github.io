@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tweet figure</title>
+<!-- Renders the SVG named in the query string (fig.html?../fig/x.svg) 1120px wide on white. -->
+<style>
+  html, body { margin: 0; background: #fff; }
+  img { display: block; width: 1120px; padding: 40px; }
+</style>
+</head>
+<body>
+<img id="fig" alt="">
+<script>document.getElementById("fig").src = decodeURIComponent(location.search.slice(1));</script>
+</body>
+</html>

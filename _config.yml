@@ -1,0 +1,6 @@
+# GitHub Pages builds this site with Jekyll; these paths are not published.
+exclude:
+  - README.md
+  - twitter/
+  - xhs/
+  - poster/Makefile
