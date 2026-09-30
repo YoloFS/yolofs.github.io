@@ -67,7 +67,7 @@ def main():
     build_mp4("demo.mp4")
     ffmpeg("-i", "demo.mp4", "-vf", "fps=10,scale=720:-1:flags=lanczos,split[a][b];"
            "[a]palettegen=max_colors=64[p];[b][p]paletteuse=dither=none", "demo.gif")
-    shot("cover.png", "s=0&n=0")
+    shot("cover.png", "s=0")
 
 
 if __name__ == "__main__":

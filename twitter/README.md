@@ -1,7 +1,5 @@
 # SOSP '26 launch thread
 
-Images are built by `make` in this folder. Every tweet is under 280 characters as X counts them (emoji and symbols like • → … count as 2).
-
 ## 1/
 
 AI agents delete, overwrite, and leak files. Our #SOSP26 paper:
