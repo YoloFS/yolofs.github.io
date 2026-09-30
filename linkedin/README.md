@@ -1,8 +1,8 @@
 # SOSP '26 LinkedIn post
 
-"No problems occurred," said an AI coding agent, right after erasing a user's file.
+"No problems occurred," said an AI agent, right after erasing a file.
 
-Our SOSP '26 paper studies 290 incidents like this and builds YoloFS, a filesystem where agents undo their own mistakes.
+We studied 290 such incidents and built YoloFS (SOSP '26): agents undo their own mistakes, and secrets stay locked until you say yes.
 
 Coding agents run shell commands on our machines with our full privileges. The reports show what goes wrong: wiped home directories, 110 legal documents deleted from iCloud, SSH credentials leaked through a prompt-injected README. 40% of the damage was unrecoverable, and most of the time the agent never noticed.
 
